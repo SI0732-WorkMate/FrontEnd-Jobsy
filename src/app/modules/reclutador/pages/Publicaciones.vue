@@ -91,7 +91,7 @@ export default {
         const headers = { Authorization: `Bearer ${token}` };
         const [offersResponse, appsResponse] = await Promise.all([
           getAllPublications(),
-          axios.get('import.meta.env.VITE_API_URL/api/applications/my-offers', { headers }).catch(() => ({ data: [] }))
+          axios.get(import.meta.env.VITE_API_URL + '/api/applications/my-offers', { headers }).catch(() => ({ data: [] }))
         ]);
         const misPublicaciones = offersResponse.data.filter(pub => pub.employer_id === currentUser.id);
         const conteo = {};

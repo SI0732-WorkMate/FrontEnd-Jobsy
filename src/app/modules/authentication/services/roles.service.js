@@ -1,7 +1,7 @@
 import axios from 'axios';
 import router from '../../../routers/router.js';
 
-const API_URL = 'import.meta.env.VITE_API_URL/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 /**
  * REGISTRO: Crea un nuevo usuario con su nombre directamente en la tabla 'User'.

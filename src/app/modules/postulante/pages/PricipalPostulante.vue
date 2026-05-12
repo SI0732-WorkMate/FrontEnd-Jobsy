@@ -3,7 +3,7 @@ import { getMyInboxMessages } from "../services/Notification.service.js";
 import { getMyApplicationsData } from "../services/Application.service.js";
 import axios from "axios";
 
-const API_URL = "import.meta.env.VITE_API_URL/api";
+const API_URL = import.meta.env.VITE_API_URL;
 const getAuthHeaders = () => ({
   headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
 });
