@@ -10,6 +10,8 @@ const props = defineProps({
 const emit = defineEmits(['guardar-cambios-postulante', 'cancelar-edicion-postulante']);
 
 const datosEditables = ref({ nombre: '', correo: '', descripcion: '' });
+const errorEmail = ref('');
+const guardando = ref(false);
 
 watch(() => props.datosInicialesPerfil, (nuevosDatos) => {
   datosEditables.value = {
@@ -19,9 +21,24 @@ watch(() => props.datosInicialesPerfil, (nuevosDatos) => {
   };
 }, { immediate: true, deep: true });
 
+const validarEmail = () => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
+  if (!datosEditables.value.correo) {
+    errorEmail.value = 'El correo es obligatorio.';
+    return false;
+  }
+  if (!emailRegex.test(datosEditables.value.correo)) {
+    errorEmail.value = 'Ingresa un correo válido (ej: tu@correo.com).';
+    return false;
+  }
+  errorEmail.value = '';
+  return true;
+};
+
 const accionCancelar = () => emit('cancelar-edicion-postulante');
 
 const accionGuardar = () => {
+  if (!validarEmail()) return;
   emit('guardar-cambios-postulante', { datosFormulario: { ...datosEditables.value } });
 };
 </script>
@@ -78,10 +95,19 @@ const accionGuardar = () => {
           <input
               id="fPost_correo"
               v-model="datosEditables.correo"
-              type="email"
+              type="text"
               class="campo-input"
+              :class="{ 'campo-input--error': errorEmail }"
               placeholder="tu@correo.com"
+              @blur="validarEmail"
           />
+        </div>
+        <div v-if="errorEmail" class="campo-error">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+          {{ errorEmail }}
         </div>
       </div>
 
@@ -101,10 +127,8 @@ const accionGuardar = () => {
 
     <!-- Footer -->
     <div class="fpost-footer">
-      <button class="btn-cancelar" @click="accionCancelar">
-        Cancelar
-      </button>
-      <button class="btn-guardar" @click="accionGuardar">
+      <button class="btn-cancelar" @click="accionCancelar">Cancelar</button>
+      <button class="btn-guardar" @click="accionGuardar" :disabled="guardando">
         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
         </svg>
@@ -153,7 +177,6 @@ const accionGuardar = () => {
   .fpost-wrap { padding: 2.5rem 3rem; }
 }
 
-/* ── Header ── */
 .fpost-header {
   display: flex;
   align-items: center;
@@ -164,22 +187,16 @@ const accionGuardar = () => {
 }
 
 .fpost-header__icon {
-  width: 44px;
-  height: 44px;
+  width: 44px; height: 44px;
   background: #ecfdf5;
   border: 1px solid rgba(16,185,129,0.2);
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   color: var(--va);
   flex-shrink: 0;
 }
 
-.fpost-header__texto {
-  flex: 1;
-  min-width: 0;
-}
+.fpost-header__texto { flex: 1; min-width: 0; }
 
 .fpost-titulo {
   font-family: 'Sora', sans-serif;
@@ -190,47 +207,25 @@ const accionGuardar = () => {
   margin: 0 0 0.2rem;
 }
 
-.fpost-subtitulo {
-  font-size: 0.875rem;
-  color: var(--muted);
-  margin: 0;
-}
+.fpost-subtitulo { font-size: 0.875rem; color: var(--muted); margin: 0; }
 
 .fpost-cerrar {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   background: var(--fondo);
   border: 1px solid var(--border);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   color: var(--muted);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.2s, color 0.2s, transform 0.2s;
 }
-.fpost-cerrar:hover {
-  background: #fee2e2;
-  color: #dc2626;
-  border-color: #fca5a5;
-  transform: scale(1.08);
-}
+.fpost-cerrar:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; transform: scale(1.08); }
 .fpost-cerrar:focus { outline: none; }
 
-/* ── Campos ── */
-.fpost-campos {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  margin-bottom: 2rem;
-}
+.fpost-campos { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem; }
 
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
+.campo { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .campo-label {
   font-family: 'Sora', sans-serif;
@@ -241,23 +236,15 @@ const accionGuardar = () => {
   color: var(--muted);
 }
 
-.campo-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
+.campo-input-wrap { position: relative; display: flex; align-items: center; }
 
 .campo-icon {
-  position: absolute;
-  left: 14px;
+  position: absolute; left: 14px;
   color: #d1d5db;
   pointer-events: none;
   transition: color 0.2s;
 }
-
-.campo-input-wrap:focus-within .campo-icon {
-  color: var(--va);
-}
+.campo-input-wrap:focus-within .campo-icon { color: var(--va); }
 
 .campo-input {
   width: 100%;
@@ -272,18 +259,18 @@ const accionGuardar = () => {
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
-
-.campo-input::placeholder {
-  color: #c4c9cc;
-  font-weight: 300;
-}
-
+.campo-input::placeholder { color: #c4c9cc; font-weight: 300; }
 .campo-input:hover { border-color: #d1d5db; }
+.campo-input:focus { border-color: var(--va); background: #fff; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
+.campo-input--error { border-color: #f87171 !important; box-shadow: 0 0 0 3px rgba(248,113,113,0.12) !important; }
 
-.campo-input:focus {
-  border-color: var(--va);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
+.campo-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #dc2626;
+  font-weight: 500;
 }
 
 .campo-textarea {
@@ -302,27 +289,12 @@ const accionGuardar = () => {
   line-height: 1.65;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
-
-.campo-textarea::placeholder {
-  color: #c4c9cc;
-  font-weight: 300;
-}
-
+.campo-textarea::placeholder { color: #c4c9cc; font-weight: 300; }
 .campo-textarea:hover { border-color: #d1d5db; }
+.campo-textarea:focus { border-color: var(--va); background: #fff; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
 
-.campo-textarea:focus {
-  border-color: var(--va);
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(16,185,129,0.12);
-}
+.campo-hint { font-size: 0.75rem; color: #9ca3af; line-height: 1.5; }
 
-.campo-hint {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  line-height: 1.5;
-}
-
-/* ── Footer ── */
 .fpost-footer {
   display: flex;
   flex-direction: column-reverse;
@@ -330,13 +302,7 @@ const accionGuardar = () => {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border);
 }
-
-@media (min-width: 480px) {
-  .fpost-footer {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
-}
+@media (min-width: 480px) { .fpost-footer { flex-direction: row; justify-content: flex-end; } }
 
 .btn-cancelar {
   padding: 0.75rem 1.5rem;
@@ -351,11 +317,7 @@ const accionGuardar = () => {
   transition: background 0.2s, border-color 0.2s;
   letter-spacing: 0.02em;
 }
-.btn-cancelar:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: var(--txt);
-}
+.btn-cancelar:hover { background: #f3f4f6; border-color: #d1d5db; color: var(--txt); }
 .btn-cancelar:focus { outline: none; }
 
 .btn-guardar {
@@ -375,10 +337,7 @@ const accionGuardar = () => {
   box-shadow: 0 4px 15px rgba(10,61,43,0.3);
   transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
-.btn-guardar:hover {
-  background: var(--va);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(16,185,129,0.35);
-}
+.btn-guardar:hover:not(:disabled) { background: var(--va); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,0.35); }
+.btn-guardar:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn-guardar:focus { outline: none; }
 </style>
