@@ -22,13 +22,21 @@ watch(() => props.datosInicialesPerfil, (nuevosDatos) => {
 }, { immediate: true, deep: true });
 
 const validarEmail = () => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,4}$/;
+  const partes = datosEditables.value.correo.split('@');
+  const dominio = partes[1] || '';
+  const tld = dominio.split('.').pop();
+
   if (!datosEditables.value.correo) {
     errorEmail.value = 'El correo es obligatorio.';
     return false;
   }
   if (!emailRegex.test(datosEditables.value.correo)) {
     errorEmail.value = 'Ingresa un correo válido (ej: tu@correo.com).';
+    return false;
+  }
+  if (tld.length > 4 || !/^[a-zA-Z]+$/.test(tld)) {
+    errorEmail.value = 'El dominio del correo no es válido.';
     return false;
   }
   errorEmail.value = '';
