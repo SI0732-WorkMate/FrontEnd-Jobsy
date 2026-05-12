@@ -1,0 +1,110 @@
+{
+  "users": [
+    {
+      "id": "6584",
+      "name": "Jasmin Urrutia",
+      "email": "jasmin@email.com",
+      "password": "1234",
+      "role": "candidate",
+      "description": "Busco oportunidades en el area de TI.",
+      "created_at": "2025-07-04T01:57:09.656Z",
+      "fotoUrl": ""
+    },
+    {
+      "id": "9ff7",
+      "name": "Empresa Tech Innovators",
+      "email": "julio@gmail.com",
+      "password": "1234",
+      "role": "employer",
+      "description": "Líderes en soluciones de software.",
+      "created_at": "2025-07-04T06:17:43.151Z"
+    },
+    {
+      "id": "9725",
+      "name": "Maria Garcia",
+      "email": "maria@gmail.com",
+      "password": "1234",
+      "role": "candidate",
+      "description": "Estudiante de marketing con ganas de aprender.",
+      "created_at": "2025-07-05T02:29:10.819Z"
+    },
+    {
+      "id": "8300",
+      "name": "Jose",
+      "email": "jose@gmail.com",
+      "password": "12345678",
+      "role": "employer",
+      "description": "",
+      "created_at": "2025-07-05T04:01:38.274Z"
+    }
+  ],
+  "job_offers": [
+    {
+      "id": "1cc9",
+      "employer_id": "9ff7",
+      "title": "Desarrollador Full-Stack",
+      "description": "Buscamos un desarrollador con experiencia en .NET y Vue.js.",
+      "requirements": ".NET, Vue.js, SQL Server",
+      "location": "Remoto (Latam)",
+      "salary_range": "S/ 5000 - S/ 7000",
+      "created_at": "2025-07-05T02:37:45.228Z",
+      "status": "Activa"
+    },
+    {
+      "id": "b60b",
+      "employer_id": "9ff7",
+      "title": "Analista QA",
+      "description": "Responsable de asegurar la calidad de nuestras aplicaciones.",
+      "requirements": "Experiencia en testing manual y automatizado.",
+      "location": "Lima, Perú",
+      "salary_range": "S/ 3500 - S/ 4500",
+      "created_at": "2025-07-05T02:43:23.196Z",
+      "status": "Activa"
+    },
+    {
+      "id": "be09",
+      "employer_id": "8300",
+      "title": "Chofer",
+      "description": "manejar",
+      "requirements": "x",
+      "location": "upc",
+      "salary_range": "1200",
+      "created_at": "2025-07-05T04:02:14.792Z",
+      "status": "Activa"
+    }
+  ],
+  "applications": [
+    {
+      "id": "2cde",
+      "job_offer_id": "1cc9",
+      "candidate_id": "6584",
+      "application_date": "2025-07-05T02:39:04.022Z",
+      "status": "pending",
+      "cv_url": "https://mi-drive.com/cv-jasmin.pdf"
+    },
+    {
+      "id": "c7a7",
+      "job_offer_id": "b60b",
+      "candidate_id": "9725",
+      "application_date": "2025-07-05T02:44:13.566Z",
+      "status": "pending",
+      "cv_url": "https://mi-drive.com/cv-empleo.pdf"
+    }
+  ],
+  "messages": [
+    {
+      "id": "c4a8",
+      "sender_id": "9ff7",
+      "receiver_id": "6584",
+      "content": "hola estamos interesados en ti",
+      "sent_at": "2025-07-05T03:54:22.917Z"
+    },
+    {
+      "id": "d3bf",
+      "sender_id": "9ff7",
+      "receiver_id": "6584",
+      "content": "bu",
+      "sent_at": "2025-07-05T04:07:53.945Z"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Esto fuerza a que todo herede la fuente Manrope */
+* {
+    font-family: 'Manrope', sans-serif !important;
+}
