@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5195/api/joboffers';
+const API_URL = 'import.meta.env.VITE_API_URL/api/joboffers';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');

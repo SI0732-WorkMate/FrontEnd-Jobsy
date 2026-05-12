@@ -1,7 +1,7 @@
 import axios from 'axios';
 import router from '../../../routers/router.js';
 
-const API_URL = 'http://localhost:5195/api';
+const API_URL = 'import.meta.env.VITE_API_URL/api';
 
 /**
  * REGISTRO: Crea un nuevo usuario con su nombre directamente en la tabla 'User'.

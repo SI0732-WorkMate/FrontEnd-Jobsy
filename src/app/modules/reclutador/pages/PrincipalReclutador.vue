@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { getAllPublications } from "../services/Publication.service.js";
 
-const API_URL = 'http://localhost:5195/api';
+const API_URL = 'import.meta.env.VITE_API_URL/api';
 
 export default {
   name: "PrincipalReclutador",
