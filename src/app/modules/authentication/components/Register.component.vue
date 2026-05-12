@@ -13,6 +13,7 @@ export default {
       selectedRole: null,
       errorMessage: "",
       esEmailDuplicado: false,
+      cargando: false, // FIX: flag para evitar doble envío al hacer clic varias veces
     };
   },
   computed: {
@@ -33,7 +34,7 @@ export default {
       };
     },
     passwordStrength() {
-      const passed = Object.values(this.rules).filter(Boolean).length; // 0‑5
+      const passed = Object.values(this.rules).filter(Boolean).length;
       if (passed <= 1) return { level: 0, label: 'Muy débil',  color: '#ef4444' };
       if (passed === 2) return { level: 1, label: 'Débil',      color: '#f97316' };
       if (passed === 3) return { level: 2, label: 'Regular',    color: '#eab308' };
@@ -53,29 +54,36 @@ export default {
   },
   methods: {
     async handleRegister() {
+      // FIX: Si ya hay una petición en curso, ignorar clics adicionales
+      if (this.cargando) return;
+
       this.errorMessage = "";
+      this.esEmailDuplicado = false;
 
       if (!this.name || !this.email || !this.password) {
         this.errorMessage = "Por favor, completa todos los campos.";
         return;
       }
-      // Dominio valido: TLD de 2 a 6 letras (bloquea hola@gmail.commwww)
+
       const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
       if (!emailRegex.test(this.email)) {
         this.errorMessage = "El correo electronico no tiene un formato valido.";
         return;
       }
+
       if (!this.passwordValid) {
         this.errorMessage = "La contraseña no cumple los requisitos de seguridad.";
         return;
       }
+
+      // FIX: Bloquear el botón antes de lanzar el request
+      this.cargando = true;
 
       try {
         const userData = { name: this.name, email: this.email, password: this.password };
         await register(userData);
         router.push('/login');
       } catch (error) {
-        // El backend devuelve 400 con { mensaje: "Ya existe un usuario con el email ..." }
         const backendMsg = error?.response?.data?.mensaje || error?.response?.data?.message || error?.message || "";
 
         if (backendMsg.toLowerCase().includes("ya existe")) {
@@ -85,6 +93,9 @@ export default {
           this.errorMessage = backendMsg || "Ocurrió un error al registrarse. Inténtalo de nuevo.";
           this.esEmailDuplicado = false;
         }
+      } finally {
+        // FIX: Siempre liberar el flag al terminar, haya error o no
+        this.cargando = false;
       }
     }
   }
@@ -173,7 +184,7 @@ export default {
               <svg class="input-icon" viewBox="0 0 20 20" fill="none">
                 <path d="M10 10a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 1114 0H3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <input id="name" v-model="name" type="text" :placeholder="namePlaceholder" required class="field-input" autocomplete="off" />
+              <input id="name" v-model="name" type="text" :placeholder="namePlaceholder" required class="field-input" autocomplete="off" :disabled="cargando" />
             </div>
           </div>
 
@@ -184,7 +195,7 @@ export default {
               <svg class="input-icon" viewBox="0 0 20 20" fill="none">
                 <path d="M2.5 6.5L10 11.5L17.5 6.5M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <input id="reg-email" v-model="email" type="email" placeholder="ejemplo@email.com" required class="field-input" autocomplete="off" />
+              <input id="reg-email" v-model="email" type="email" placeholder="ejemplo@email.com" required class="field-input" autocomplete="off" :disabled="cargando" />
             </div>
           </div>
 
@@ -203,15 +214,13 @@ export default {
                   required
                   class="field-input field-input--password"
                   autocomplete="new-password"
+                  :disabled="cargando"
               />
-              <!-- Toggle ver/ocultar -->
               <button type="button" class="btn-eye" @click="showPassword = !showPassword" tabindex="-1" :aria-label="showPassword ? 'Ocultar contraseña' : 'Ver contraseña'">
-                <!-- Ojo abierto -->
                 <svg v-if="!showPassword" width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                 </svg>
-                <!-- Ojo tachado -->
                 <svg v-else width="17" height="17" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
                 </svg>
@@ -231,29 +240,35 @@ export default {
 
             <!-- ── Checklist de requisitos ── -->
             <ul v-if="showChecklist" class="pwd-checklist">
-              <li :class="rules.length  ? 'rule--ok' : 'rule--fail'">
-                <span class="rule-icon">{{ rules.length  ? '✓' : '✕' }}</span> Mínimo 8 caracteres
-              </li>
-              <li :class="rules.upper   ? 'rule--ok' : 'rule--fail'">
-                <span class="rule-icon">{{ rules.upper   ? '✓' : '✕' }}</span> Al menos una mayúscula (A–Z)
-              </li>
-              <li :class="rules.lower   ? 'rule--ok' : 'rule--fail'">
-                <span class="rule-icon">{{ rules.lower   ? '✓' : '✕' }}</span> Al menos una minúscula (a–z)
-              </li>
-              <li :class="rules.number  ? 'rule--ok' : 'rule--fail'">
-                <span class="rule-icon">{{ rules.number  ? '✓' : '✕' }}</span> Al menos un número (0–9)
-              </li>
-              <li :class="rules.special ? 'rule--ok' : 'rule--fail'">
-                <span class="rule-icon">{{ rules.special ? '✓' : '✕' }}</span> Al menos un carácter especial (!@#$…)
-              </li>
+              <li :class="rules.length  ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.length  ? '✓' : '✕' }}</span> Mínimo 8 caracteres</li>
+              <li :class="rules.upper   ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.upper   ? '✓' : '✕' }}</span> Al menos una mayúscula (A–Z)</li>
+              <li :class="rules.lower   ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.lower   ? '✓' : '✕' }}</span> Al menos una minúscula (a–z)</li>
+              <li :class="rules.number  ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.number  ? '✓' : '✕' }}</span> Al menos un número (0–9)</li>
+              <li :class="rules.special ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.special ? '✓' : '✕' }}</span> Al menos un carácter especial (!@#$…)</li>
             </ul>
           </div>
 
-          <button type="submit" class="btn-register" :class="esReclutador ? 'btn-register--employer' : ''" :disabled="!passwordValid">
-            <span>Crear cuenta {{ rolIcon }}</span>
-            <svg viewBox="0 0 20 20" fill="none" class="btn-arrow">
-              <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <!-- FIX: Botón deshabilitado mientras carga + texto/spinner de feedback -->
+          <button
+              type="submit"
+              class="btn-register"
+              :class="esReclutador ? 'btn-register--employer' : ''"
+              :disabled="!passwordValid || cargando"
+          >
+            <!-- Estado normal -->
+            <template v-if="!cargando">
+              <span>Crear cuenta {{ rolIcon }}</span>
+              <svg viewBox="0 0 20 20" fill="none" class="btn-arrow">
+                <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
+            <!-- Estado cargando -->
+            <template v-else>
+              <svg class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+              </svg>
+              <span>Creando cuenta…</span>
+            </template>
           </button>
 
           <p class="terms-note">
@@ -362,16 +377,11 @@ export default {
 .field-input--password { padding-right: 44px; }
 .field-input::placeholder { color:#b0bab5; }
 .field-input:focus { border-color:#10b981; background:#fff; box-shadow:0 0 0 4px rgba(16,185,129,0.1); }
+.field-input:disabled { opacity: 0.6; cursor: not-allowed; }
 .input-wrap:focus-within .input-icon { color:#10b981; }
 
 /* ─── Toggle ojo ─── */
-.btn-eye {
-  position: absolute; right: 14px;
-  background: none; border: none; padding: 0;
-  cursor: pointer; color: #9ca3af;
-  display: flex; align-items: center;
-  transition: color 0.2s;
-}
+.btn-eye { position: absolute; right: 14px; background: none; border: none; padding: 0; cursor: pointer; color: #9ca3af; display: flex; align-items: center; transition: color 0.2s; }
 .btn-eye:hover { color: #10b981; }
 .btn-eye:focus { outline: none; }
 
@@ -382,18 +392,8 @@ export default {
 .strength-label { font-size: 0.75rem; font-weight: 600; white-space: nowrap; transition: color 0.3s; }
 
 /* ─── Checklist ─── */
-.pwd-checklist {
-  list-style: none;
-  display: flex; flex-direction: column; gap: 5px;
-  background: #f9fafb; border: 1.5px solid #e5e7eb;
-  border-radius: 12px; padding: 12px 14px;
-  margin-top: 4px;
-}
-.pwd-checklist li {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.8rem; font-family: 'DM Sans', sans-serif;
-  font-weight: 400; transition: color 0.2s;
-}
+.pwd-checklist { list-style: none; display: flex; flex-direction: column; gap: 5px; background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; margin-top: 4px; }
+.pwd-checklist li { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; font-weight: 400; transition: color 0.2s; }
 .rule-icon { font-size: 0.7rem; font-weight: 700; width: 16px; text-align: center; }
 .rule--ok   { color: #10b981; }
 .rule--fail { color: #9ca3af; }
@@ -404,9 +404,17 @@ export default {
 .btn-register:hover:not(:disabled) { background:#10b981; transform:translateY(-1px); box-shadow:0 6px 20px rgba(16,185,129,0.35); }
 .btn-register--employer:hover:not(:disabled) { background:#3b82f6; box-shadow:0 6px 20px rgba(59,130,246,0.35); }
 .btn-register:active:not(:disabled) { transform:translateY(0); }
-.btn-register:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-register:disabled { opacity: 0.55; cursor: not-allowed; }
 .btn-arrow { width:18px; height:18px; transition:transform 0.2s; }
 .btn-register:hover:not(:disabled) .btn-arrow { transform:translateX(3px); }
+
+/* ─── Spinner de carga ─── */
+.spinner {
+  width: 18px; height: 18px;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 .terms-note { font-size:0.78rem; color:#9ca3af; text-align:center; line-height:1.5; }
 .terms-note a { color:#10b981; text-decoration:none; }
