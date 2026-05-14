@@ -352,7 +352,7 @@ export default {
                 </div>
                 <div>
                   <h2 id="modal-title-terms" class="modal-title">Acuerdo de Servicio — SaaS</h2>
-                  <p class="modal-meta">Jobsy · WorkMate · Última actualización: 2025</p>
+                  <p class="modal-meta">Jobsy · WorkMate · Última actualización: 2026</p>
                 </div>
               </div>
 
@@ -516,7 +516,7 @@ export default {
 
           <!-- Pie del modal -->
           <div class="modal-footer">
-            <span class="modal-footer__text">© 2025 WorkMate · Jobsy. Todos los derechos reservados.</span>
+            <span class="modal-footer__text">© 2026 WorkMate · Jobsy. Todos los derechos reservados.</span>
             <button class="modal-footer__btn" @click="closeModal">Entendido</button>
           </div>
 
