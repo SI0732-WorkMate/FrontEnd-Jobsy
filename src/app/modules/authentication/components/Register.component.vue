@@ -13,7 +13,10 @@ export default {
       selectedRole: null,
       errorMessage: "",
       esEmailDuplicado: false,
-      cargando: false, // FIX: flag para evitar doble envío al hacer clic varias veces
+      cargando: false,
+      // Modal
+      showTermsModal: false,
+      activeTab: "terms", // "terms" | "privacy"
     };
   },
   computed: {
@@ -22,7 +25,6 @@ export default {
     rolIcon()      { return this.esReclutador ? '🏢' : '👤'; },
     namePlaceholder() { return this.esReclutador ? 'Nombre de la empresa' : 'Tu nombre completo'; },
 
-    /* ── Reglas de contraseña ── */
     rules() {
       const p = this.password;
       return {
@@ -54,7 +56,6 @@ export default {
   },
   methods: {
     async handleRegister() {
-      // FIX: Si ya hay una petición en curso, ignorar clics adicionales
       if (this.cargando) return;
 
       this.errorMessage = "";
@@ -67,7 +68,7 @@ export default {
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
       if (!emailRegex.test(this.email)) {
-        this.errorMessage = "El correo electronico no tiene un formato valido.";
+        this.errorMessage = "El correo electrónico no tiene un formato válido.";
         return;
       }
 
@@ -76,7 +77,6 @@ export default {
         return;
       }
 
-      // FIX: Bloquear el botón antes de lanzar el request
       this.cargando = true;
 
       try {
@@ -94,9 +94,23 @@ export default {
           this.esEmailDuplicado = false;
         }
       } finally {
-        // FIX: Siempre liberar el flag al terminar, haya error o no
         this.cargando = false;
       }
+    },
+
+    openModal(tab) {
+      this.activeTab = tab;
+      this.showTermsModal = true;
+      document.body.style.overflow = 'hidden';
+    },
+
+    closeModal() {
+      this.showTermsModal = false;
+      document.body.style.overflow = '';
+    },
+
+    handleOverlayClick(e) {
+      if (e.target === e.currentTarget) this.closeModal();
     }
   }
 };
@@ -164,7 +178,7 @@ export default {
           <p class="form-subtitle">Empieza gratis, sin tarjeta de crédito</p>
         </div>
 
-        <!-- ── Alerta de error ── -->
+        <!-- Alerta de error -->
         <div v-if="errorMessage" class="alert-error">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
@@ -227,7 +241,7 @@ export default {
               </button>
             </div>
 
-            <!-- ── Barra de fuerza ── -->
+            <!-- Barra de fuerza -->
             <div v-if="showChecklist" class="strength-bar-wrap">
               <div class="strength-bar">
                 <div
@@ -238,7 +252,7 @@ export default {
               <span class="strength-label" :style="{ color: passwordStrength.color }">{{ passwordStrength.label }}</span>
             </div>
 
-            <!-- ── Checklist de requisitos ── -->
+            <!-- Checklist de requisitos -->
             <ul v-if="showChecklist" class="pwd-checklist">
               <li :class="rules.length  ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.length  ? '✓' : '✕' }}</span> Mínimo 8 caracteres</li>
               <li :class="rules.upper   ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rules.upper   ? '✓' : '✕' }}</span> Al menos una mayúscula (A–Z)</li>
@@ -248,21 +262,19 @@ export default {
             </ul>
           </div>
 
-          <!-- FIX: Botón deshabilitado mientras carga + texto/spinner de feedback -->
+          <!-- Botón submit -->
           <button
               type="submit"
               class="btn-register"
               :class="esReclutador ? 'btn-register--employer' : ''"
               :disabled="!passwordValid || cargando"
           >
-            <!-- Estado normal -->
             <template v-if="!cargando">
               <span>Crear cuenta {{ rolIcon }}</span>
               <svg viewBox="0 0 20 20" fill="none" class="btn-arrow">
                 <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </template>
-            <!-- Estado cargando -->
             <template v-else>
               <svg class="spinner" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="31.4" stroke-dashoffset="10"/>
@@ -271,10 +283,12 @@ export default {
             </template>
           </button>
 
+          <!-- ─── Términos y Privacidad ─── -->
           <p class="terms-note">
             Al registrarte aceptas nuestros
-            <a href="#">Términos de servicio</a> y
-            <a href="#">Política de privacidad</a>.
+            <button type="button" class="terms-link" @click="openModal('terms')">Términos de servicio</button>
+            y
+            <button type="button" class="terms-link" @click="openModal('privacy')">Política de privacidad</button>.
           </p>
 
         </form>
@@ -286,6 +300,230 @@ export default {
 
       </div>
     </div>
+
+    <!-- ═══════════════════════════════════════════
+         MODAL — Términos de servicio / Política
+    ════════════════════════════════════════════ -->
+    <Transition name="modal-fade">
+      <div v-if="showTermsModal" class="modal-overlay" @click="handleOverlayClick" role="dialog" aria-modal="true" :aria-labelledby="activeTab === 'terms' ? 'modal-title-terms' : 'modal-title-privacy'">
+        <div class="modal-box">
+
+          <!-- Cabecera -->
+          <div class="modal-header">
+            <div class="modal-tabs">
+              <button
+                  class="modal-tab"
+                  :class="{ 'modal-tab--active': activeTab === 'terms' }"
+                  @click="activeTab = 'terms'"
+              >
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Términos de servicio
+              </button>
+              <button
+                  class="modal-tab"
+                  :class="{ 'modal-tab--active': activeTab === 'privacy' }"
+                  @click="activeTab = 'privacy'"
+              >
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                Política de privacidad
+              </button>
+            </div>
+            <button class="modal-close" @click="closeModal" aria-label="Cerrar">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Cuerpo scrolleable -->
+          <div class="modal-body">
+
+            <!-- ── TÉRMINOS DE SERVICIO ── -->
+            <div v-if="activeTab === 'terms'">
+              <div class="modal-hero">
+                <div class="modal-hero__icon modal-hero__icon--terms">
+                  <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 id="modal-title-terms" class="modal-title">Acuerdo de Servicio — SaaS</h2>
+                  <p class="modal-meta">Jobsy · WorkMate · Última actualización: 2025</p>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">1</span> Definición del Servicio
+                </h3>
+                <p>Jobsy es una solución de <strong>Software as a Service (SaaS)</strong> diseñada para la automatización del reclutamiento. El servicio incluye:</p>
+                <ul class="modal-list">
+                  <li>Filtrado de CVs mediante inteligencia artificial</li>
+                  <li>Gestión y coordinación de entrevistas</li>
+                  <li>Publicación de vacantes laborales</li>
+                  <li>Analíticas y reportes de contratación</li>
+                </ul>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">2</span> Cuentas y Accesos
+                </h3>
+                <div class="info-card">
+                  <strong>Registro:</strong> El usuario se compromete a proporcionar información veraz y mantener la confidencialidad de sus credenciales de acceso.
+                </div>
+                <div class="info-card info-card--blue">
+                  <strong>Tipos de Usuario:</strong> El acuerdo distingue entre el <em>Usuario Empresa (Reclutador)</em> y el <em>Usuario Postulante</em>, cada uno con permisos y accesos limitados según su rol.
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">3</span> Niveles de Servicio (SLA)
+                </h3>
+                <div class="sla-grid">
+                  <div class="sla-item">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                      <p class="sla-item__label">Disponibilidad garantizada</p>
+                      <p class="sla-item__value">99.5% anual</p>
+                    </div>
+                  </div>
+                  <div class="sla-item">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                      <p class="sla-item__label">Tiempo máximo de soporte</p>
+                      <p class="sla-item__value">48 horas hábiles</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">4</span> Modelo de Suscripción y Pagos
+                </h3>
+                <p>El acceso para empresas se rige por planes <strong>mensuales o anuales</strong> (Standard / Enterprise). Los usuarios pueden cancelar su suscripción en cualquier momento; el acceso se mantendrá activo hasta el fin del período facturado.</p>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">5</span> Restricciones de Uso
+                </h3>
+                <p>Queda estrictamente prohibido:</p>
+                <ul class="modal-list modal-list--warning">
+                  <li>Publicar ofertas de empleo falsas o engañosas</li>
+                  <li>Intentar realizar ingeniería inversa sobre los algoritmos de filtrado de IA</li>
+                  <li>Extraer datos masivos (scraping) de perfiles de candidatos sin autorización</li>
+                </ul>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">6</span> Limitación de Responsabilidad
+                </h3>
+                <div class="info-card">
+                  WorkMate actúa como un <strong>facilitador tecnológico</strong>. La decisión final de contratación es responsabilidad exclusiva de la Empresa. El Proveedor no garantiza la veracidad absoluta de la información proporcionada por los postulantes en sus CVs.
+                </div>
+              </div>
+            </div>
+
+            <!-- ── POLÍTICA DE PRIVACIDAD ── -->
+            <div v-if="activeTab === 'privacy'">
+              <div class="modal-hero">
+                <div class="modal-hero__icon modal-hero__icon--privacy">
+                  <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 id="modal-title-privacy" class="modal-title">Política de Privacidad</h2>
+                  <p class="modal-meta">Jobsy · WorkMate · Protección de datos personales</p>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">1</span> Propiedad de los Datos
+                </h3>
+                <div class="info-card info-card--green">
+                  Los postulantes son <strong>dueños de su información personal</strong>. Las empresas solo podrán utilizar dicha información para fines estrictos de evaluación laboral, sin compartirlos con terceros no autorizados.
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">2</span> Datos que Recopilamos
+                </h3>
+                <ul class="modal-list">
+                  <li>Información de registro: nombre, correo electrónico y rol</li>
+                  <li>Información de perfil: CV, experiencia laboral, habilidades</li>
+                  <li>Datos de uso: actividad en la plataforma, búsquedas realizadas</li>
+                  <li>Datos técnicos: dirección IP, tipo de navegador, cookies de sesión</li>
+                </ul>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">3</span> Uso de Inteligencia Artificial
+                </h3>
+                <div class="ai-card">
+                  <div class="ai-card__icon">🤖</div>
+                  <div>
+                    <p>El sistema utiliza <strong>algoritmos de IA</strong> para el filtrado inicial de candidatos. WorkMate garantiza que estos modelos son revisados periódicamente para <strong>mitigar sesgos discriminatorios</strong>, cumpliendo con estándares éticos profesionales.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.83rem; color: #6b7280;">Las decisiones finales siempre corresponden a un evaluador humano.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">4</span> Tus Derechos
+                </h3>
+                <p>Como usuario tienes derecho a:</p>
+                <ul class="modal-list">
+                  <li><strong>Acceso:</strong> solicitar una copia de tus datos personales almacenados</li>
+                  <li><strong>Rectificación:</strong> corregir datos inexactos o incompletos</li>
+                  <li><strong>Eliminación:</strong> solicitar la eliminación de tu cuenta y datos asociados</li>
+                  <li><strong>Portabilidad:</strong> exportar tu información en formato estándar</li>
+                </ul>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">5</span> Seguridad
+                </h3>
+                <p>Aplicamos medidas técnicas y organizativas para proteger tu información, incluyendo cifrado en tránsito (TLS), control de accesos por rol y auditorías de seguridad periódicas.</p>
+              </div>
+
+              <div class="modal-section">
+                <h3 class="modal-section__title">
+                  <span class="section-num">6</span> Contacto
+                </h3>
+                <p>Para consultas sobre privacidad o para ejercer tus derechos, puedes escribirnos a <strong>privacidad@jobsy.pe</strong>. Responderemos en un plazo máximo de 15 días hábiles.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Pie del modal -->
+          <div class="modal-footer">
+            <span class="modal-footer__text">© 2025 WorkMate · Jobsy. Todos los derechos reservados.</span>
+            <button class="modal-footer__btn" @click="closeModal">Entendido</button>
+          </div>
+
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
@@ -355,17 +593,10 @@ export default {
 .form-subtitle { font-size:0.9rem; color:#7a8a80; }
 
 /* ─── ALERTA ERROR ─── */
-.alert-error {
-  display: flex; align-items: flex-start; gap: 10px;
-  background: #fef2f2; border: 1.5px solid #fecaca;
-  border-radius: 12px; padding: 12px 14px;
-  margin-bottom: 1rem;
-  font-size: 0.85rem; color: #dc2626; font-weight: 500;
-  line-height: 1.45;
-}
-.alert-error svg { flex-shrink: 0; margin-top: 1px; }
-.alert-body { display: flex; flex-direction: column; gap: 4px; }
-.alert-link { font-weight: 700; color: #dc2626; text-decoration: underline; width: fit-content; }
+.alert-error { display:flex; align-items:flex-start; gap:10px; background:#fef2f2; border:1.5px solid #fecaca; border-radius:12px; padding:12px 14px; margin-bottom:1rem; font-size:0.85rem; color:#dc2626; font-weight:500; line-height:1.45; }
+.alert-error svg { flex-shrink:0; margin-top:1px; }
+.alert-body { display:flex; flex-direction:column; gap:4px; }
+.alert-link { font-weight:700; color:#dc2626; text-decoration:underline; width:fit-content; }
 
 /* ─── FORM ─── */
 .form-body { display:flex; flex-direction:column; gap:1.1rem; }
@@ -374,29 +605,29 @@ export default {
 .input-wrap { position:relative; display:flex; align-items:center; }
 .input-icon { position:absolute; left:14px; width:18px; height:18px; color:#9ca3af; pointer-events:none; transition:color 0.2s; }
 .field-input { width:100%; background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:12px; padding:13px 16px 13px 42px; font-size:0.95rem; font-family:'DM Sans',sans-serif; color:#111827; outline:none; transition:border-color 0.2s,box-shadow 0.2s,background 0.2s; }
-.field-input--password { padding-right: 44px; }
+.field-input--password { padding-right:44px; }
 .field-input::placeholder { color:#b0bab5; }
 .field-input:focus { border-color:#10b981; background:#fff; box-shadow:0 0 0 4px rgba(16,185,129,0.1); }
-.field-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.field-input:disabled { opacity:0.6; cursor:not-allowed; }
 .input-wrap:focus-within .input-icon { color:#10b981; }
 
 /* ─── Toggle ojo ─── */
-.btn-eye { position: absolute; right: 14px; background: none; border: none; padding: 0; cursor: pointer; color: #9ca3af; display: flex; align-items: center; transition: color 0.2s; }
-.btn-eye:hover { color: #10b981; }
-.btn-eye:focus { outline: none; }
+.btn-eye { position:absolute; right:14px; background:none; border:none; padding:0; cursor:pointer; color:#9ca3af; display:flex; align-items:center; transition:color 0.2s; }
+.btn-eye:hover { color:#10b981; }
+.btn-eye:focus { outline:none; }
 
 /* ─── Barra de fuerza ─── */
-.strength-bar-wrap { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
-.strength-bar { flex: 1; height: 5px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-.strength-fill { height: 100%; border-radius: 99px; transition: width 0.35s ease, background 0.35s ease; }
-.strength-label { font-size: 0.75rem; font-weight: 600; white-space: nowrap; transition: color 0.3s; }
+.strength-bar-wrap { display:flex; align-items:center; gap:10px; margin-top:6px; }
+.strength-bar { flex:1; height:5px; background:#e5e7eb; border-radius:99px; overflow:hidden; }
+.strength-fill { height:100%; border-radius:99px; transition:width 0.35s ease,background 0.35s ease; }
+.strength-label { font-size:0.75rem; font-weight:600; white-space:nowrap; transition:color 0.3s; }
 
 /* ─── Checklist ─── */
-.pwd-checklist { list-style: none; display: flex; flex-direction: column; gap: 5px; background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; margin-top: 4px; }
-.pwd-checklist li { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; font-weight: 400; transition: color 0.2s; }
-.rule-icon { font-size: 0.7rem; font-weight: 700; width: 16px; text-align: center; }
-.rule--ok   { color: #10b981; }
-.rule--fail { color: #9ca3af; }
+.pwd-checklist { list-style:none; display:flex; flex-direction:column; gap:5px; background:#f9fafb; border:1.5px solid #e5e7eb; border-radius:12px; padding:12px 14px; margin-top:4px; }
+.pwd-checklist li { display:flex; align-items:center; gap:8px; font-size:0.8rem; font-family:'DM Sans',sans-serif; font-weight:400; transition:color 0.2s; }
+.rule-icon { font-size:0.7rem; font-weight:700; width:16px; text-align:center; }
+.rule--ok   { color:#10b981; }
+.rule--fail { color:#9ca3af; }
 
 /* ─── Botón submit ─── */
 .btn-register { margin-top:0.5rem; width:100%; display:flex; align-items:center; justify-content:center; gap:10px; background:#0a3d2b; color:#fff; font-family:'Sora',sans-serif; font-size:0.95rem; font-weight:600; padding:14px 24px; border:none; border-radius:12px; cursor:pointer; transition:background 0.2s,transform 0.15s,box-shadow 0.2s; box-shadow:0 4px 15px rgba(10,61,43,0.3); }
@@ -404,22 +635,273 @@ export default {
 .btn-register:hover:not(:disabled) { background:#10b981; transform:translateY(-1px); box-shadow:0 6px 20px rgba(16,185,129,0.35); }
 .btn-register--employer:hover:not(:disabled) { background:#3b82f6; box-shadow:0 6px 20px rgba(59,130,246,0.35); }
 .btn-register:active:not(:disabled) { transform:translateY(0); }
-.btn-register:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-register:disabled { opacity:0.55; cursor:not-allowed; }
 .btn-arrow { width:18px; height:18px; transition:transform 0.2s; }
 .btn-register:hover:not(:disabled) .btn-arrow { transform:translateX(3px); }
 
-/* ─── Spinner de carga ─── */
-.spinner {
-  width: 18px; height: 18px;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* ─── Spinner ─── */
+.spinner { width:18px; height:18px; animation:spin 0.8s linear infinite; flex-shrink:0; }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
+/* ─── Nota de términos ─── */
 .terms-note { font-size:0.78rem; color:#9ca3af; text-align:center; line-height:1.5; }
-.terms-note a { color:#10b981; text-decoration:none; }
+.terms-link { background:none; border:none; padding:0; font-size:inherit; font-family:inherit; color:#10b981; cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px; transition:color 0.2s; }
+.terms-link:hover { color:#0a3d2b; }
 
 .login-link { margin-top:1.75rem; text-align:center; font-size:0.875rem; color:#6b7280; }
 .login-link a { color:#10b981; font-weight:600; text-decoration:none; margin-left:4px; }
 .login-link a:hover { color:#0a3d2b; }
+
+/* ════════════════════════════════
+   MODAL
+════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 620px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+/* Cabecera con tabs */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0;
+  border-bottom: 1.5px solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.modal-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0.6rem 1rem 0.85rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: #9ca3af;
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px;
+  border-radius: 0;
+  transition: color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.modal-tab:hover { color: #374151; }
+.modal-tab--active { color: #0a3d2b; border-bottom-color: #10b981; font-weight: 600; }
+
+.modal-close {
+  background: #f3f4f6;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+  margin-bottom: 0.5rem;
+}
+.modal-close:hover { background: #fee2e2; color: #dc2626; }
+
+/* Cuerpo scrolleable */
+.modal-body {
+  overflow-y: auto;
+  padding: 1.5rem 1.75rem;
+  flex: 1;
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.7;
+  scroll-behavior: smooth;
+}
+
+/* Hero del modal */
+.modal-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1.5px solid #f3f4f6;
+}
+
+.modal-hero__icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.modal-hero__icon--terms   { background: #ecfdf5; color: #059669; }
+.modal-hero__icon--privacy { background: #eff6ff; color: #2563eb; }
+
+.modal-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f1a13;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.2rem;
+}
+
+.modal-meta { font-size: 0.78rem; color: #9ca3af; }
+
+/* Secciones */
+.modal-section { margin-bottom: 1.5rem; }
+
+.modal-section__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #0a3d2b;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+/* Listas */
+.modal-list { padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; margin-top: 0.5rem; }
+.modal-list li { padding-left: 1.25rem; position: relative; }
+.modal-list li::before { content: '→'; position: absolute; left: 0; color: #10b981; font-size: 0.8rem; top: 2px; }
+
+.modal-list--warning li::before { content: '✕'; color: #ef4444; }
+
+/* Tarjeta de info */
+.info-card {
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.87rem;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+.info-card--blue  { background: #eff6ff; border-color: #bfdbfe; }
+.info-card--green { background: #ecfdf5; border-color: #a7f3d0; }
+
+/* Grid SLA */
+.sla-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 0.5rem; }
+@media (max-width: 480px) { .sla-grid { grid-template-columns: 1fr; } }
+
+.sla-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: #059669;
+}
+.sla-item__label { font-size: 0.75rem; color: #6b7280; margin-bottom: 2px; }
+.sla-item__value { font-size: 0.95rem; font-weight: 700; color: #0a3d2b; }
+
+/* Card de IA */
+.ai-card {
+  display: flex;
+  gap: 12px;
+  background: #fefce8;
+  border: 1.5px solid #fde68a;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 0.87rem;
+  line-height: 1.6;
+}
+.ai-card__icon { font-size: 1.4rem; flex-shrink: 0; }
+
+/* Pie del modal */
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.75rem;
+  border-top: 1.5px solid #f3f4f6;
+  flex-shrink: 0;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.modal-footer__text { font-size: 0.75rem; color: #9ca3af; }
+
+.modal-footer__btn {
+  background: #0a3d2b;
+  color: #fff;
+  border: none;
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.modal-footer__btn:hover { background: #10b981; transform: translateY(-1px); }
+
+/* ─── Transición del modal ─── */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+.modal-fade-enter-active .modal-box,
+.modal-fade-leave-active .modal-box {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-from .modal-box,
+.modal-fade-leave-to .modal-box {
+  transform: translateY(24px) scale(0.97);
+  opacity: 0;
+}
 </style>
