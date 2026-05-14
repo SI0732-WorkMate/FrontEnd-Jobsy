@@ -107,6 +107,22 @@ export default {
         alert('Por favor completa todos los campos correctamente antes de guardar.');
         return;
       }
+
+      // Validar título duplicado: no permitir el mismo título si ya existe una publicación
+      // Activa del mismo reclutador. Borradores sí pueden repetir título.
+      const tituloNuevo = this.formulario.title?.trim().toLowerCase();
+      const esDuplicado = this.publicaciones.some(pub => {
+        const mismoTitulo = pub.title?.trim().toLowerCase() === tituloNuevo;
+        const esActiva = pub.status === 'Activa' || pub.status === 0;
+        const esOtraPublicacion = pub.id !== this.formulario.id; // no comparar consigo mismo al editar
+        return mismoTitulo && esActiva && esOtraPublicacion;
+      });
+
+      if (esDuplicado) {
+        alert(`Ya tienes una publicación activa con el título "${this.formulario.title.trim()}". Cambia el título o pon la publicación existente en Borrador para poder reutilizarlo.`);
+        return;
+      }
+
       try {
         const salaryValue = this.salarioPrivado ? 0 : parseFloat(this.formulario.salary_range);
         if (this.formulario.id) {
