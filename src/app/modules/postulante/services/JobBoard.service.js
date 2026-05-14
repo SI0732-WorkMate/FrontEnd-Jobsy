@@ -13,10 +13,13 @@ const getAuthHeaders = () => {
 export const getJobBoardData = async () => {
     try {
         const response = await axios.get(`${API_URL}/joboffers`, getAuthHeaders());
-        const offers = response.data.map(offer => ({
-            ...offer,
-            status: offer.status === 0 ? "Activa" : "Borrador"
-        }));
+        const offers = response.data
+            .map(offer => ({
+                ...offer,
+                status: offer.status === 0 ? "Activa" : "Borrador"
+            }))
+            // Solo mostrar ofertas Activas a los postulantes
+            .filter(offer => offer.status === "Activa");
         return offers;
     } catch (error) {
         console.error("Error al obtener ofertas:", error);
