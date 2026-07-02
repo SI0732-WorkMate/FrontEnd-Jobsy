@@ -63,7 +63,8 @@ export default {
       try {
         await CandidatoService.actualizarEstadoCandidato(
             candidatoActualizado.id,
-            candidatoActualizado.backendStatus
+            candidatoActualizado.backendStatus,
+            candidatoActualizado.motivo
         );
         this.candidatos[index].status = candidatoActualizado.status;
         this.candidatos[index].backendStatus = candidatoActualizado.backendStatus;

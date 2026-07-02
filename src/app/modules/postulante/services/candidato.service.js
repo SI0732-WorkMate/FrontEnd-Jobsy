@@ -62,11 +62,15 @@ export const CandidatoService = {
         }
     },
 
-    async actualizarEstadoCandidato(applicationId, nuevoEstado) {
+    async actualizarEstadoCandidato(applicationId, nuevoEstado, motivo = null) {
         // nuevoEstado debe ser: 'accepted' | 'rejected' | 'pending'
+        const body = { status: nuevoEstado };
+        if (nuevoEstado === 'rejected' && motivo) {
+            body.reason = motivo;
+        }
         const response = await axios.patch(
             `${API_URL}/applications/${applicationId}/status`,
-            { status: nuevoEstado },
+            body,
             getAuthHeaders()
         );
         return response.data;

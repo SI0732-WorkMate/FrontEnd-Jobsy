@@ -6,7 +6,9 @@ export default {
   },
   data() {
     return {
-      estadoLocal: this.candidato?.backendStatus || 'pending'
+      estadoLocal: this.candidato?.backendStatus || 'pending',
+      mostrarConfirmacionDescarte: false,
+      motivoDescarte: ''
     };
   },
   computed: {
@@ -16,17 +18,32 @@ export default {
         case 'rejected': return 'Rechazado';
         default:         return 'Pendiente';
       }
+    },
+    textoBotonPrimario() {
+      return this.mostrarConfirmacionDescarte ? 'Confirmar descarte' : this.$t("actualizar_estado");
     }
   },
   methods: {
     setEstado(nuevoBackendStatus) {
       this.estadoLocal = nuevoBackendStatus;
+      this.mostrarConfirmacionDescarte = false;
+    },
+    cancelarDescarte() {
+      this.mostrarConfirmacionDescarte = false;
+      this.motivoDescarte = '';
     },
     confirmar() {
+      // Si va a "Rechazado", primero pedimos confirmación con motivo opcional
+      if (this.estadoLocal === 'rejected' && !this.mostrarConfirmacionDescarte) {
+        this.mostrarConfirmacionDescarte = true;
+        return;
+      }
+
       const updated = {
         ...this.candidato,
         backendStatus: this.estadoLocal,
         status: this.labelEstado,
+        motivo: this.estadoLocal === 'rejected' ? this.motivoDescarte.trim() : null,
       };
       this.$emit('actualizar', updated);
     }
@@ -109,6 +126,22 @@ export default {
               ✗ Rechazado
             </button>
           </div>
+
+          <!-- Confirmación de descarte con motivo opcional -->
+          <div v-if="mostrarConfirmacionDescarte" class="campo campo-descarte">
+            <label class="campo-label">Motivo del descarte (opcional)</label>
+            <textarea
+                v-model="motivoDescarte"
+                class="campo-textarea"
+                rows="3"
+                placeholder="Ej: El perfil no cumple con los años de experiencia requeridos..."
+                maxlength="300"
+            ></textarea>
+            <button class="btn-secondary" @click="cancelarDescarte" style="align-self: flex-start;">
+              Cancelar descarte
+            </button>
+          </div>
+
         </div>
 
       </div>
@@ -116,7 +149,7 @@ export default {
       <!-- Footer acciones -->
       <div class="modal-footer">
         <button class="btn-primary" @click="confirmar">
-          {{ $t("actualizar_estado") }}
+          {{ textoBotonPrimario }}
         </button>
         <button class="btn-secondary" @click="$emit('cerrar')">
           {{ $t("cerrar") }}
@@ -368,6 +401,19 @@ export default {
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
+
 .btn-secondary:hover { background: var(--fondo); border-color: #d1d5db; }
 .btn-secondary:focus { outline: none; }
+
+.campo-textarea {
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  color: var(--txt);
+  resize: vertical;
+}
+.campo-descarte { animation: fadeIn 0.2s ease; }
 </style>
