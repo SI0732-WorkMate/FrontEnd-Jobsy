@@ -73,8 +73,9 @@ export default {
         return;
       }
 
-      const scheduledAt = new Date(`${this.fechaEntrevista}T${this.horaEntrevista}`);
-      if (isNaN(scheduledAt.getTime()) || scheduledAt < new Date()) {
+      const scheduledAtTexto = `${this.fechaEntrevista}T${this.horaEntrevista}:00`;
+      const scheduledAtValidacion = new Date(scheduledAtTexto);
+      if (isNaN(scheduledAtValidacion.getTime()) || scheduledAtValidacion < new Date()) {
         this.errorEntrevista = 'La fecha y hora deben ser válidas y futuras.';
         return;
       }
@@ -83,7 +84,7 @@ export default {
       try {
         await InterviewService.scheduleInterview({
           application_id: this.candidato.id,
-          scheduled_at: scheduledAt.toISOString(),
+          scheduled_at: scheduledAtTexto, // sin conversión a UTC — se guarda tal cual
           duration_minutes: Number(this.duracionEntrevista) || 30,
           notes: this.notasEntrevista.trim() || null
         });
@@ -204,7 +205,7 @@ export default {
           <div class="agendar-fila">
             <div class="agendar-campo">
               <label class="campo-label">Fecha</label>
-              <input type="date" v-model="fechaEntrevista" class="campo-input" />
+              <input type="date" v-model="fechaEntrevista" class="campo-input" :min="new Date().toISOString().split('T')[0]" />
             </div>
             <div class="agendar-campo">
               <label class="campo-label">Hora</label>

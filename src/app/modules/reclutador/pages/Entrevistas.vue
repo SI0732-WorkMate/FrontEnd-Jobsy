@@ -6,7 +6,14 @@ export default {
   data() {
     return {
       entrevistas: [],
-      isLoading: true
+      isLoading: true,
+      editandoId: null,
+      editFecha: '',
+      editHora: '',
+      editDuracion: 30,
+      editNotas: '',
+      editError: '',
+      guardandoEdicion: false
     };
   },
   computed: {
@@ -49,6 +56,53 @@ export default {
       } catch (error) {
         alert('No se pudo actualizar la entrevista.');
         console.error(error);
+      }
+    },
+
+    // ── Edición ──
+    abrirEdicion(entrevista) {
+      this.editandoId = entrevista.interview_id;
+      const fecha = new Date(entrevista.scheduled_at);
+      this.editFecha = fecha.toISOString().split('T')[0] === 'Invalid' ? '' : this.aFechaInput(fecha);
+      this.editHora = this.aHoraInput(fecha);
+      this.editDuracion = entrevista.duration_minutes;
+      this.editNotas = entrevista.notes || '';
+      this.editError = '';
+    },
+    aFechaInput(fecha) {
+      const pad = n => String(n).padStart(2, '0');
+      return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}`;
+    },
+    aHoraInput(fecha) {
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(fecha.getHours())}:${pad(fecha.getMinutes())}`;
+    },
+    cancelarEdicion() {
+      this.editandoId = null;
+      this.editError = '';
+    },
+    async guardarEdicion(entrevista) {
+      this.editError = '';
+      if (!this.editFecha || !this.editHora) {
+        this.editError = 'Selecciona fecha y hora.';
+        return;
+      }
+
+      this.guardandoEdicion = true;
+      try {
+        const resultado = await InterviewService.reprogramarEntrevista(entrevista.interview_id, {
+          scheduled_at: `${this.editFecha}T${this.editHora}:00`,
+          duration_minutes: Number(this.editDuracion) || 30,
+          notes: this.editNotas.trim() || null
+        });
+        entrevista.scheduled_at = resultado.scheduled_at;
+        entrevista.duration_minutes = resultado.duration_minutes;
+        entrevista.notes = resultado.notes;
+        this.editandoId = null;
+      } catch (error) {
+        this.editError = error.response?.data?.error || 'No se pudo guardar el cambio.';
+      } finally {
+        this.guardandoEdicion = false;
       }
     }
   },
@@ -97,13 +151,31 @@ export default {
         </div>
         <div class="entrevista-estado">
           <span class="entrevista-badge" :class="'entrevista-badge--' + e.status">
-            {{ e.status === 'scheduled' ? 'Programada' : e.status === 'completed' ? 'Completada' : 'Cancelada' }}
+              {{ e.status === 'scheduled' ? 'Programada' : e.status === 'completed' ? 'Completada' : 'Cancelada' }}
           </span>
           <div v-if="e.status === 'scheduled'" class="entrevista-acciones">
+            <button class="entrevista-btn entrevista-btn--editar" @click="abrirEdicion(e)">✏️ Editar</button>
             <button class="entrevista-btn entrevista-btn--ok" @click="cambiarEstado(e, 'completed')">✓ Completar</button>
             <button class="entrevista-btn entrevista-btn--cancel" @click="cambiarEstado(e, 'cancelled')">✗ Cancelar</button>
           </div>
         </div>
+
+        <div v-if="editandoId === e.interview_id" class="entrevista-edit">
+          <div class="agendar-fila">
+            <input type="date" v-model="editFecha" class="campo-input" />
+            <input type="time" v-model="editHora" class="campo-input" />
+            <input type="number" v-model="editDuracion" min="15" step="15" class="campo-input" style="max-width: 90px;" />
+          </div>
+          <textarea v-model="editNotas" class="campo-textarea" rows="2" placeholder="Notas..."></textarea>
+          <p v-if="editError" class="agendar-error">{{ editError }}</p>
+          <div class="agendar-fila">
+            <button class="entrevista-btn entrevista-btn--ok" :disabled="guardandoEdicion" @click="guardarEdicion(e)">
+              {{ guardandoEdicion ? 'Guardando...' : 'Guardar cambios' }}
+            </button>
+            <button class="entrevista-btn" @click="cancelarEdicion">Cancelar</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -154,4 +226,27 @@ export default {
 .entrevista-btn--ok { background: #d1fae5; color: #065f46; }
 .entrevista-btn--cancel { background: #fee2e2; color: #991b1b; }
 .entrevista-btn:hover { opacity: 0.8; }
+
+
+.entrevista-btn--editar { background: #e0e7ff; color: #3730a3; }
+.entrevista-edit {
+  margin-top: 0.75rem;
+  padding: 0.9rem;
+  background: #f9fafb;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.agendar-fila { display: flex; gap: 0.5rem; }
+.campo-input {
+  background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px;
+  padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; flex: 1;
+}
+.campo-textarea {
+  background: #fff; border: 1.5px solid #e5e7eb; border-radius: 10px;
+  padding: 8px 10px; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; resize: vertical;
+}
+.agendar-error { color: #dc2626; font-size: 0.8rem; margin: 0; }
 </style>

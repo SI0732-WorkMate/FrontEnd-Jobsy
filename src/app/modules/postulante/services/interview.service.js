@@ -40,5 +40,14 @@ export const InterviewService = {
             getAuthHeaders()
         );
         return response.data;
+    },
+
+    async reprogramarEntrevista(interviewId, { scheduled_at, duration_minutes, notes }) {
+        const response = await axios.put(
+            `${API_URL}/interviews/${interviewId}`,
+            { scheduled_at, duration_minutes, notes },
+            getAuthHeaders()
+        );
+        return response.data;
     }
 };

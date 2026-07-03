@@ -71,11 +71,18 @@ export default {
         );
         this.candidatos[index].status = candidatoActualizado.status;
         this.candidatos[index].backendStatus = candidatoActualizado.backendStatus;
+        this.modalData = { ...this.candidatos[index] };
       } catch (error) {
         alert('Error al actualizar el estado. Intenta de nuevo.');
         console.error(error);
+        return;
       }
-      this.cerrarModal();
+
+      // Si quedó "Aceptado", dejamos el modal abierto para poder agendar
+      // la entrevista de inmediato sin tener que volver a entrar.
+      if (candidatoActualizado.backendStatus !== 'accepted') {
+        this.cerrarModal();
+      }
     },
     async moverEstadoKanban({ id, nuevoEstado }) {
       const candidato = this.candidatos.find(c => c.id === id);
@@ -104,7 +111,7 @@ export default {
       this.mostrarModalContacto = true;
     },
     cerrarModalContacto() {
-      this.mostrarModalContacto = false;
+      this.cerrarModalContacto = false;
     },
     async enviarMensaje(mensaje) {
       if (!this.candidatoParaContactar) return;
