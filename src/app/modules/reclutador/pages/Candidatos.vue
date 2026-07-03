@@ -3,6 +3,7 @@ import CandidatoFiltro from '../components/candidato/CandidatoFiltro.vue'
 import CandidatoTabla from '../components/candidato/CandidatoTabla.vue'
 import CandidatoModal from '../components/candidato/CandidatoModal.vue'
 import ContactarModal from '../components/candidato/ContactarModal.vue'
+import CandidatoKanban from '../components/candidato/CandidatoKanban.vue'
 import { CandidatoService } from '../../postulante/services/candidato.service.js'
 import { MessageService } from '../services/Message.service.js'
 
@@ -12,7 +13,8 @@ export default {
     CandidatoFiltro,
     CandidatoTabla,
     CandidatoModal,
-    ContactarModal
+    ContactarModal,
+    CandidatoKanban
   },
   data() {
     return {
@@ -22,7 +24,8 @@ export default {
       mostrarModal: false,
       modalData: {},
       mostrarModalContacto: false,
-      candidatoParaContactar: {}
+      candidatoParaContactar: {},
+      vista: 'tabla' // 'tabla' | 'kanban'
     }
   },
   computed: {
@@ -73,6 +76,28 @@ export default {
         console.error(error);
       }
       this.cerrarModal();
+    },
+    async moverEstadoKanban({ id, nuevoEstado }) {
+      const candidato = this.candidatos.find(c => c.id === id);
+      if (!candidato || candidato.backendStatus === nuevoEstado) return;
+
+      let motivo = null;
+      if (nuevoEstado === 'rejected') {
+        motivo = window.prompt('Motivo del descarte (opcional):', '') || null;
+      }
+
+      const estadoAnterior = candidato.backendStatus;
+      const statusAnterior = candidato.status;
+      try {
+        await CandidatoService.actualizarEstadoCandidato(id, nuevoEstado, motivo);
+        candidato.backendStatus = nuevoEstado;
+        candidato.status = nuevoEstado === 'accepted' ? 'Aceptado' : nuevoEstado === 'rejected' ? 'Rechazado' : 'Pendiente';
+      } catch (error) {
+        candidato.backendStatus = estadoAnterior;
+        candidato.status = statusAnterior;
+        alert('Error al actualizar el estado. Intenta de nuevo.');
+        console.error(error);
+      }
     },
     abrirModalContacto(candidato) {
       this.candidatoParaContactar = candidato;
@@ -131,6 +156,24 @@ export default {
       <CandidatoFiltro v-model:filtro="filtroNombre" />
     </div>
 
+    <!-- Toggle de vista -->
+    <div v-if="!isLoading" class="jobsy-view-toggle">
+      <button
+          class="jobsy-view-btn"
+          :class="{ 'jobsy-view-btn--activo': vista === 'tabla' }"
+          @click="vista = 'tabla'"
+      >
+        📋 Tabla
+      </button>
+      <button
+          class="jobsy-view-btn"
+          :class="{ 'jobsy-view-btn--activo': vista === 'kanban' }"
+          @click="vista = 'kanban'"
+      >
+        🗂 Kanban
+      </button>
+    </div>
+
     <!-- Loading -->
     <div v-if="isLoading" class="jobsy-loading">
       <div class="jobsy-spinner">
@@ -141,12 +184,19 @@ export default {
       <p class="jobsy-loading__sub">Obteniendo la base de datos de talento.</p>
     </div>
 
-    <!-- Tabla -->
+    <!-- Vista -->
     <div v-else class="jobsy-table-wrap">
       <CandidatoTabla
+          v-if="vista === 'tabla'"
           :candidatos="candidatosFiltrados"
           @verMas="abrirModal"
           @contactar="abrirModalContacto"
+      />
+      <CandidatoKanban
+          v-else
+          :candidatos="candidatosFiltrados"
+          @verMas="abrirModal"
+          @mover="moverEstadoKanban"
       />
     </div>
 
@@ -281,6 +331,32 @@ export default {
 /* ── Filtro ── */
 .jobsy-filter-wrap {
   margin-bottom: 2rem;
+}
+
+/* ── Toggle de vista ── */
+.jobsy-view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.jobsy-view-btn {
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jobsy-view-btn--activo {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
 }
 
 /* ── Loading ── */
