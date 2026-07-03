@@ -106,6 +106,18 @@ export default {
           </li>
 
           <li>
+            <router-link to="/reclutador/entrevistas" @click="closeMobileMenu" class="nav-link" active-class="nav-link--active">
+              <span class="nav-link__icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+              </span>
+              <span class="nav-link__label">Entrevistas</span>
+            </router-link>
+          </li>
+
+          <li>
             <router-link to="/reclutador/analiticas" @click="closeMobileMenu" class="nav-link" active-class="nav-link--active">
               <span class="nav-link__icon">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">

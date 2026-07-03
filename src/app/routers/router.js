@@ -19,6 +19,9 @@ import AsitenciaAI from "../modules/reclutador/pages/AsitenciaAI.vue";
 import PerfilReclutador from "../modules/reclutador/pages/PerfilReclutador.vue";
 import AsistenciaIA from '../modules/postulante/pages/AsistenciaIA.vue'
 
+import Entrevistas from "../modules/reclutador/pages/Entrevistas.vue";
+import MisEntrevistas from "../modules/postulante/pages/MisEntrevistas.vue";
+
 const routes = [
     {path:"/", redirect: "/select-role"},
     {path: "/select-role", component: RoleSelectionComponents},
@@ -35,6 +38,7 @@ const routes = [
             { path: 'bandeja-entrada', component: BandejaEntrada, name: 'PostulanteBandejaEntrada' },
             { path: 'perfil', component: PerfilPostulante, name: 'PostulantePerfil' },
             { path: 'asistencia-ia', component: AsistenciaIA, name: 'PostulanteAsistenciaIA' },
+            { path: 'mis-entrevistas', component: MisEntrevistas, name: 'PostulanteMisEntrevistas' },
         ]
     },
 
@@ -49,6 +53,7 @@ const routes = [
             { path: 'analiticas', component: Analiticas, name: 'ReclutadorAnaliticas' },
             { path: 'asistencia-ia', component: AsitenciaAI, name: 'ReclutadorAsistenciaIA' },
             { path: 'perfil', component: PerfilReclutador, name: 'ReclutadorPerfil' },
+            { path: 'entrevistas', component: Entrevistas, name: 'ReclutadorEntrevistas' }
         ]
     },
 ];

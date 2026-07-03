@@ -1,4 +1,6 @@
 <script>
+import { InterviewService } from '../../../postulante/services/interview.service.js'
+
 export default {
   name: 'CandidatoModal',
   props: {
@@ -8,7 +10,17 @@ export default {
     return {
       estadoLocal: this.candidato?.backendStatus || 'pending',
       mostrarConfirmacionDescarte: false,
-      motivoDescarte: ''
+      motivoDescarte: '',
+
+      // US020 - Agendar entrevista
+      mostrarAgendarEntrevista: false,
+      fechaEntrevista: '',
+      horaEntrevista: '',
+      duracionEntrevista: 30,
+      notasEntrevista: '',
+      agendandoEntrevista: false,
+      errorEntrevista: '',
+      entrevistaAgendadaOk: false
     };
   },
   computed: {
@@ -33,7 +45,6 @@ export default {
       this.motivoDescarte = '';
     },
     confirmar() {
-      // Si va a "Rechazado", primero pedimos confirmación con motivo opcional
       if (this.estadoLocal === 'rejected' && !this.mostrarConfirmacionDescarte) {
         this.mostrarConfirmacionDescarte = true;
         return;
@@ -46,6 +57,45 @@ export default {
         motivo: this.estadoLocal === 'rejected' ? this.motivoDescarte.trim() : null,
       };
       this.$emit('actualizar', updated);
+    },
+
+    // ── US020 - Agendar entrevista ──
+    toggleAgendarEntrevista() {
+      this.mostrarAgendarEntrevista = !this.mostrarAgendarEntrevista;
+      this.errorEntrevista = '';
+      this.entrevistaAgendadaOk = false;
+    },
+    async agendarEntrevista() {
+      this.errorEntrevista = '';
+
+      if (!this.fechaEntrevista || !this.horaEntrevista) {
+        this.errorEntrevista = 'Selecciona una fecha y hora.';
+        return;
+      }
+
+      const scheduledAt = new Date(`${this.fechaEntrevista}T${this.horaEntrevista}`);
+      if (isNaN(scheduledAt.getTime()) || scheduledAt < new Date()) {
+        this.errorEntrevista = 'La fecha y hora deben ser válidas y futuras.';
+        return;
+      }
+
+      this.agendandoEntrevista = true;
+      try {
+        await InterviewService.scheduleInterview({
+          application_id: this.candidato.id,
+          scheduled_at: scheduledAt.toISOString(),
+          duration_minutes: Number(this.duracionEntrevista) || 30,
+          notes: this.notasEntrevista.trim() || null
+        });
+        this.entrevistaAgendadaOk = true;
+        this.fechaEntrevista = '';
+        this.horaEntrevista = '';
+        this.notasEntrevista = '';
+      } catch (error) {
+        this.errorEntrevista = error.response?.data?.error || 'No se pudo agendar la entrevista. Intenta de nuevo.';
+      } finally {
+        this.agendandoEntrevista = false;
+      }
     }
   }
 };
@@ -141,9 +191,47 @@ export default {
               Cancelar descarte
             </button>
           </div>
-
         </div>
+      </div>
 
+      <!-- US020 - Agendar entrevista (solo si el candidato está Aceptado) -->
+      <div v-if="estadoLocal === 'accepted'" class="campo">
+        <button class="btn-secondary btn-agendar" @click="toggleAgendarEntrevista">
+          📅 {{ mostrarAgendarEntrevista ? 'Ocultar agenda' : 'Agendar entrevista' }}
+        </button>
+
+        <div v-if="mostrarAgendarEntrevista" class="campo-agendar">
+          <div class="agendar-fila">
+            <div class="agendar-campo">
+              <label class="campo-label">Fecha</label>
+              <input type="date" v-model="fechaEntrevista" class="campo-input" />
+            </div>
+            <div class="agendar-campo">
+              <label class="campo-label">Hora</label>
+              <input type="time" v-model="horaEntrevista" class="campo-input" />
+            </div>
+            <div class="agendar-campo agendar-campo--corto">
+              <label class="campo-label">Duración (min)</label>
+              <input type="number" v-model="duracionEntrevista" min="15" step="15" class="campo-input" />
+            </div>
+          </div>
+
+          <label class="campo-label">Notas (opcional)</label>
+          <textarea
+              v-model="notasEntrevista"
+              class="campo-textarea"
+              rows="2"
+              placeholder="Ej: Entrevista técnica vía Google Meet..."
+              maxlength="500"
+          ></textarea>
+
+          <p v-if="errorEntrevista" class="agendar-error">{{ errorEntrevista }}</p>
+          <p v-if="entrevistaAgendadaOk" class="agendar-ok">✓ Entrevista agendada y notificada al candidato.</p>
+
+          <button class="btn-primary" :disabled="agendandoEntrevista" @click="agendarEntrevista">
+            {{ agendandoEntrevista ? 'Agendando...' : 'Confirmar entrevista' }}
+          </button>
+        </div>
       </div>
 
       <!-- Footer acciones -->
@@ -416,4 +504,32 @@ export default {
   resize: vertical;
 }
 .campo-descarte { animation: fadeIn 0.2s ease; }
+
+//US20
+.btn-agendar { width: 100%; text-align: center; }
+.campo-agendar {
+  margin-top: 0.75rem;
+  padding: 0.9rem;
+  background: #f9fafb;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  animation: fadeIn 0.2s ease;
+}
+.agendar-fila { display: flex; gap: 0.6rem; }
+.agendar-campo { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
+.agendar-campo--corto { flex: 0.7; }
+.campo-input {
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  color: var(--txt);
+}
+.agendar-error { color: #dc2626; font-size: 0.8rem; margin: 0; }
+.agendar-ok { color: #059669; font-size: 0.8rem; margin: 0; font-weight: 600; }
 </style>
