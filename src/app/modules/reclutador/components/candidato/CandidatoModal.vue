@@ -505,7 +505,6 @@ export default {
 }
 .campo-descarte { animation: fadeIn 0.2s ease; }
 
-//US20
 .btn-agendar { width: 100%; text-align: center; }
 .campo-agendar {
   margin-top: 0.75rem;
