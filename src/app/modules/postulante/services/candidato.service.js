@@ -39,7 +39,6 @@ export const CandidatoService = {
                     nombre = userRes.data?.name || nombre
                 } catch {}
 
-                // Buscar el título de la oferta en la lista ya cargada
                 const oferta = ofertas.find(o => o.id === app.job_offer_id)
                 const publicationTitle = oferta?.title || `Oferta #${app.job_offer_id?.slice(0, 8)}`
 
@@ -52,10 +51,13 @@ export const CandidatoService = {
                     cv: app.cv_url,
                     status: mapStatus(app.status),
                     backendStatus: (app.status || 'pending').toLowerCase(),
+                    matchScore: app.match_score ?? null,
+                    hasCvPdf: !!app.has_cv_pdf,
                 }
             }))
 
-            return candidatosFinales
+            // Ya viene ordenado del backend, pero lo reforzamos por si acaso
+            return candidatosFinales.sort((a, b) => (b.matchScore ?? -1) - (a.matchScore ?? -1))
         } catch (error) {
             console.error('❌ Error al llamar a /api/applications/my-offers:', error.response?.data || error.message)
             return []
@@ -63,7 +65,6 @@ export const CandidatoService = {
     },
 
     async actualizarEstadoCandidato(applicationId, nuevoEstado, motivo = null) {
-        // nuevoEstado debe ser: 'accepted' | 'rejected' | 'pending'
         const body = { status: nuevoEstado };
         if (nuevoEstado === 'rejected' && motivo) {
             body.reason = motivo;
@@ -71,6 +72,28 @@ export const CandidatoService = {
         const response = await axios.patch(
             `${API_URL}/applications/${applicationId}/status`,
             body,
+            getAuthHeaders()
+        );
+        return response.data;
+    },
+
+    // US016 - Match Score
+    async calcularMatchScore(applicationId, pdfFile = null) {
+        const formData = new FormData();
+        if (pdfFile) formData.append('cv_pdf', pdfFile);
+
+        const token = localStorage.getItem('token');
+        const response = await axios.post(
+            `${API_URL}/applications/${applicationId}/calculate-match`,
+            formData,
+            { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+        );
+        return response.data;
+    },
+
+    async obtenerDetalleMatch(applicationId) {
+        const response = await axios.get(
+            `${API_URL}/applications/${applicationId}/match-detail`,
             getAuthHeaders()
         );
         return response.data;

@@ -1,5 +1,6 @@
 <script>
 import { InterviewService } from '../../../postulante/services/interview.service.js'
+import { CandidatoService } from '../../../postulante/services/candidato.service.js'
 
 export default {
   name: 'CandidatoModal',
@@ -20,7 +21,21 @@ export default {
       notasEntrevista: '',
       agendandoEntrevista: false,
       errorEntrevista: '',
-      entrevistaAgendadaOk: false
+      entrevistaAgendadaOk: false,
+
+      // ==========================================
+      // ADICIONADO: US016 - Match Score
+      // ==========================================
+      mostrarCalcularMatch: false,
+      matchPdfFile: null,
+      matchPdfError: '',
+      calculandoMatch: false,
+      errorMatch: '',
+      matchScoreLocal: this.candidato?.matchScore ?? null,
+      mostrarDetalleMatch: false,
+      detalleMatch: null,
+      cargandoDetalleMatch: false,
+      // ==========================================
     };
   },
   computed: {
@@ -97,26 +112,76 @@ export default {
       } finally {
         this.agendandoEntrevista = false;
       }
+    },
+
+    // ==========================================
+    // ADICIONADO: ── US016 - Match Score ──
+    // ==========================================
+    onMatchPdfChange(e) {
+      const file = e.target.files[0];
+      this.matchPdfError = '';
+      this.matchPdfFile = null;
+      if (!file) return;
+      if (file.type !== 'application/pdf') {
+        this.matchPdfError = 'Solo se aceptan archivos PDF.';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        this.matchPdfError = `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. Máximo 5 MB.`;
+        return;
+      }
+      this.matchPdfFile = file;
+    },
+    toggleCalcularMatch() {
+      this.mostrarCalcularMatch = !this.mostrarCalcularMatch;
+      this.errorMatch = '';
+    },
+    async calcularMatch() {
+      this.errorMatch = '';
+      if (!this.candidato.hasCvPdf && !this.matchPdfFile) {
+        this.errorMatch = 'Sube el PDF del CV de este candidato para calcular el Match Score.';
+        return;
+      }
+      this.calculandoMatch = true;
+      try {
+        const resultado = await CandidatoService.calcularMatchScore(this.candidato.id, this.matchPdfFile);
+        this.matchScoreLocal = resultado.match_score;
+        this.mostrarCalcularMatch = false;
+        this.matchPdfFile = null;
+      } catch (error) {
+        this.errorMatch = error.response?.data?.error || 'No se pudo calcular el Match Score. Intenta de nuevo.';
+      } finally {
+        this.calculandoMatch = false;
+      }
+    },
+    async verDetalleMatch() {
+      this.mostrarDetalleMatch = !this.mostrarDetalleMatch;
+      if (!this.mostrarDetalleMatch || this.detalleMatch) return;
+      this.cargandoDetalleMatch = true;
+      try {
+        this.detalleMatch = await CandidatoService.obtenerDetalleMatch(this.candidato.id);
+      } catch (error) {
+        this.detalleMatch = { summary: 'No se pudo cargar el detalle del match.', matched_skills: [], missing_skills: [] };
+      } finally {
+        this.cargandoDetalleMatch = false;
+      }
     }
+    // ==========================================
   }
 };
 </script>
 
 <template>
-  <!-- Overlay -->
   <div class="modal-overlay">
 
-    <!-- Card -->
     <div class="modal-card">
 
-      <!-- Cerrar -->
       <button class="btn-cerrar" @click="$emit('cerrar')" aria-label="Cerrar">
         <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
 
-      <!-- Ícono decorativo -->
       <div class="modal-icon">
         <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -125,7 +190,6 @@ export default {
 
       <h3 class="modal-titulo">{{ $t("titulo_candidatos") }}</h3>
 
-      <!-- Campos -->
       <div class="campos">
 
         <div class="campo">
@@ -151,7 +215,6 @@ export default {
           </div>
         </div>
 
-        <!-- Estado -->
         <div class="campo">
           <label class="campo-label">{{ $t("estado_postulante") }}</label>
           <div class="estado-btns">
@@ -178,7 +241,6 @@ export default {
             </button>
           </div>
 
-          <!-- Confirmación de descarte con motivo opcional -->
           <div v-if="mostrarConfirmacionDescarte" class="campo campo-descarte">
             <label class="campo-label">Motivo del descarte (opcional)</label>
             <textarea
@@ -195,7 +257,6 @@ export default {
         </div>
       </div>
 
-      <!-- US020 - Agendar entrevista (solo si el candidato está Aceptado) -->
       <div v-if="estadoLocal === 'accepted'" class="campo">
         <button class="btn-secondary btn-agendar" @click="toggleAgendarEntrevista">
           📅 {{ mostrarAgendarEntrevista ? 'Ocultar agenda' : 'Agendar entrevista' }}
@@ -219,7 +280,7 @@ export default {
 
           <label class="campo-label">Notas (opcional)</label>
           <textarea
-              v-model="notasEntrevista"
+              v-model="notesEntrevista"
               class="campo-textarea"
               rows="2"
               placeholder="Ej: Entrevista técnica vía Google Meet..."
@@ -235,7 +296,56 @@ export default {
         </div>
       </div>
 
-      <!-- Footer acciones -->
+      <div class="campo">
+        <label class="campo-label">🎯 Match Score</label>
+
+        <div v-if="matchScoreLocal !== null" class="match-score-row">
+          <span class="match-score-numero" :class="{
+            'match-score-numero--alto': matchScoreLocal >= 70,
+            'match-score-numero--medio': matchScoreLocal >= 40 && matchScoreLocal < 70,
+            'match-score-numero--bajo': matchScoreLocal < 40
+          }">{{ matchScoreLocal }}/100</span>
+          <button class="btn-secondary" @click="verDetalleMatch">
+            {{ mostrarDetalleMatch ? 'Ocultar detalle' : 'Ver detalle' }}
+          </button>
+        </div>
+        <p v-else class="match-sin-calcular">Aún no se ha calculado el Match Score de este candidato.</p>
+
+        <div v-if="mostrarDetalleMatch" class="match-detalle">
+          <p v-if="cargandoDetalleMatch" class="match-cargando">Cargando detalle...</p>
+          <template v-else-if="detalleMatch">
+            <p class="match-summary">{{ detalleMatch.summary }}</p>
+            <div class="match-skills-col">
+              <p class="match-skills-titulo match-skills-titulo--ok">✅ Coincide con:</p>
+              <ul class="match-skills-lista">
+                <li v-for="(skill, i) in detalleMatch.matched_skills" :key="'m'+i">{{ skill }}</li>
+              </ul>
+            </div>
+            <div class="match-skills-col">
+              <p class="match-skills-titulo match-skills-titulo--falta">⚠️ Falta / no evidenciado:</p>
+              <ul class="match-skills-lista">
+                <li v-for="(skill, i) in detalleMatch.missing_skills" :key="'f'+i">{{ skill }}</li>
+              </ul>
+            </div>
+          </template>
+        </div>
+
+        <button class="btn-secondary btn-agendar" @click="toggleCalcularMatch">
+          {{ mostrarCalcularMatch ? 'Ocultar' : (matchScoreLocal !== null ? '🔄 Recalcular Match Score' : '📊 Calcular Match Score') }}
+        </button>
+
+        <div v-if="mostrarCalcularMatch" class="campo-agendar">
+          <label class="campo-label">
+            {{ candidato.hasCvPdf ? 'PDF ya guardado (opcional: sube otro para reemplazarlo)' : 'Sube el PDF del CV de este candidato' }}
+          </label>
+          <input type="file" accept="application/pdf" @change="onMatchPdfChange" class="campo-input" />
+          <p v-if="matchPdfError" class="agendar-error">{{ matchPdfError }}</p>
+          <p v-if="errorMatch" class="agendar-error">{{ errorMatch }}</p>
+          <button class="btn-primary" :disabled="calculandoMatch" @click="calcularMatch">
+            {{ calculandoMatch ? 'Calculando...' : 'Calcular' }}
+          </button>
+        </div>
+      </div>
       <div class="modal-footer">
         <button class="btn-primary" @click="confirmar">
           {{ textoBotonPrimario }}
@@ -532,4 +642,46 @@ export default {
 }
 .agendar-error { color: #dc2626; font-size: 0.8rem; margin: 0; }
 .agendar-ok { color: #059669; font-size: 0.8rem; margin: 0; font-weight: 600; }
+
+/* ========================================================== */
+/* ADICIONADO: Estilos para la sección de Match Score        */
+/* ========================================================== */
+.match-score-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.match-score-numero {
+  font-family: 'Sora', sans-serif;
+  font-weight: 800;
+  font-size: 1.3rem;
+  padding: 6px 16px;
+  border-radius: 12px;
+}
+.match-score-numero--alto  { background: #dcfce7; color: #15803d; }
+.match-score-numero--medio { background: #fefce8; color: #92400e; }
+.match-score-numero--bajo  { background: #fef2f2; color: #dc2626; }
+.match-sin-calcular {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-style: italic;
+  margin: 0;
+}
+.match-detalle {
+  margin-top: 0.75rem;
+  padding: 0.9rem;
+  background: #f9fafb;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.match-cargando { font-size: 0.85rem; color: var(--muted); margin: 0; }
+.match-summary { font-size: 0.85rem; color: var(--txt); margin: 0; font-style: italic; }
+.match-skills-titulo { font-size: 0.75rem; font-weight: 700; margin: 0 0 4px; }
+.match-skills-titulo--ok    { color: #15803d; }
+.match-skills-titulo--falta { color: #b45309; }
+.match-skills-lista { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--txt); }
+.match-skills-lista li { margin-bottom: 2px; }
 </style>

@@ -18,6 +18,7 @@ export default {
     <div class="tabla-head">
       <div class="th">{{ $t("nombre") }}</div>
       <div class="th">Oferta</div>
+      <div class="th">Match Score</div>
       <div class="th">{{ $t("curriculum_vitae") }}</div>
       <div class="th">{{ $t("estado") }}</div>
       <div class="th">{{ $t("acciones") }}</div>
@@ -41,6 +42,25 @@ export default {
           <div class="cell cell--center">
             <span class="cell-label-mobile">{{ $t('nro_publicacion') }}</span>
             <span class="oferta-chip">{{ candidato.publicationTitle }}</span>
+          </div>
+
+          <!-- Match Score -->
+          <div class="cell cell--center">
+            <span class="cell-label-mobile">Match Score</span>
+            <span
+                v-if="candidato.matchScore !== null && candidato.matchScore !== undefined"
+                class="match-badge"
+                :class="{
+                  'match-badge--alto': candidato.matchScore >= 70,
+                  'match-badge--medio': candidato.matchScore >= 40 && candidato.matchScore < 70,
+                  'match-badge--bajo': candidato.matchScore < 40
+                }"
+                @click="$emit('verMas', candidato)"
+                title="Ver detalle del match"
+            >
+              🎯 {{ candidato.matchScore }}
+            </span>
+            <span v-else class="chip chip-gray">Sin calcular</span>
           </div>
 
           <!-- CV -->
@@ -102,7 +122,8 @@ export default {
 @media (min-width: 768px) {
   .tabla-head {
     display: grid;
-    grid-template-columns: 2.5fr 1.5fr 1fr 1fr 1.5fr;
+    /* REEMPLAZADO: Ahora tiene 6 columnas en lugar de 5 */
+    grid-template-columns: 2fr 1.3fr 1fr 1fr 1fr 1.5fr;
     gap: 10px;
     margin-bottom: 10px;
     padding: 0 4px;
@@ -141,7 +162,8 @@ export default {
 @media (min-width: 768px) {
   .tabla-row {
     display: grid;
-    grid-template-columns: 2.5fr 1.5fr 1fr 1fr 1.5fr;
+    /* REEMPLAZADO: Ajustado para alinearse perfectamente con la cabecera */
+    grid-template-columns: 2fr 1.3fr 1fr 1fr 1fr 1.5fr;
     gap: 10px;
     align-items: center;
     padding: 14px 16px;
@@ -217,6 +239,26 @@ export default {
 .chip-yellow { background: #fefce8; color: #92400e; border: 1px solid #fde68a; }
 .chip-blue   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .chip-gray   { background: #f5f4f0; color: #6b7280; border: 1px solid #e5e7eb; }
+
+/* ========================================================== */
+/* ADICIONADO: Estilos para el nuevo badge de Match Score     */
+/* ========================================================== */
+.match-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.match-badge:hover { transform: scale(1.06); }
+.match-badge--alto  { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.match-badge--medio { background: #fefce8; color: #92400e; border: 1px solid #fde68a; }
+.match-badge--bajo  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+/* ========================================================== */
 
 /* CV btn */
 .btn-cv {

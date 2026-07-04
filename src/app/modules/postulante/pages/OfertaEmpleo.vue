@@ -55,11 +55,23 @@ export default {
       this.mostrarModalPostular = false;
       this.ofertaSeleccionada = null;
     },
-    async postular(cvUrl) {
+    async postular({ cvUrl, cvFile }) {
       if (!this.ofertaSeleccionada) return alert("Error al procesar la postulación.");
-      const payloadAPI = { job_offer_id: this.ofertaSeleccionada.id, cv_url: cvUrl };
+
+      // Creamos el FormData para empaquetar los textos y el archivo PDF binario
+      const formData = new FormData();
+      formData.append('job_offer_id', this.ofertaSeleccionada.id);
+      formData.append('cv_url', cvUrl);
+
+      // Si el usuario adjuntó un archivo PDF, lo sumamos al formulario
+      if (cvFile) {
+        formData.append('cv_pdf', cvFile);
+      }
+
       try {
-        await applyToJob(payloadAPI);
+        // Enviamos el formData en lugar del objeto payloadAPI anterior
+        await applyToJob(formData);
+
         alert("¡Has postulado exitosamente!");
         this.myAppliedIds.push(String(this.ofertaSeleccionada.id));
         this.cerrarModalPostular();

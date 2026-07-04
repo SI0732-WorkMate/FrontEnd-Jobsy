@@ -6,9 +6,25 @@ export default {
   },
   emits: ['cerrar', 'confirmar-postulacion'],
   data() {
-    return { cvUrl: '' };
+    return { cvUrl: '', cvFile: null, cvFileError: '' };
   },
   methods: {
+    onFileChange(e) {
+      const file = e.target.files[0];
+      this.cvFileError = '';
+      this.cvFile = null;
+      if (!file) return;
+
+      if (file.type !== 'application/pdf') {
+        this.cvFileError = 'Solo se aceptan archivos PDF.';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        this.cvFileError = `El archivo pesa ${(file.size / 1024 / 1024).toFixed(1)} MB. Máximo 5 MB.`;
+        return;
+      }
+      this.cvFile = file;
+    },
     confirmar() {
       if (!this.cvUrl.trim()) {
         alert('Por favor, introduce el enlace de tu CV.');
@@ -20,7 +36,7 @@ export default {
         alert('Por favor, introduce una URL válida (ej: https://...).');
         return;
       }
-      this.$emit('confirmar-postulacion', this.cvUrl);
+      this.$emit('confirmar-postulacion', { cvUrl: this.cvUrl, cvFile: this.cvFile });
     }
   }
 };
@@ -30,14 +46,12 @@ export default {
   <div class="modal-overlay" @click.self="$emit('cerrar')">
     <div class="modal-card">
 
-      <!-- Cerrar -->
       <button class="modal-close" @click="$emit('cerrar')" aria-label="Cerrar">
         <svg viewBox="0 0 24 24" fill="none">
           <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
 
-      <!-- ── SECCIÓN INFO OFERTA ── -->
       <div class="oferta-section">
         <div class="oferta-badge">
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +62,6 @@ export default {
 
         <h2 class="oferta-title">{{ oferta.title }}</h2>
 
-        <!-- Chips de metadata -->
         <div class="oferta-chips">
           <span v-if="oferta.location" class="info-chip">
             <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,26 +78,23 @@ export default {
           </span>
         </div>
 
-        <!-- Descripción -->
         <div v-if="oferta.description" class="oferta-block">
           <span class="block-label">Descripción</span>
           <p class="block-text">{{ oferta.description }}</p>
         </div>
 
-        <!-- Requisitos -->
         <div v-if="oferta.requirements" class="oferta-block">
           <span class="block-label">Requisitos</span>
           <p class="block-text">{{ oferta.requirements }}</p>
         </div>
       </div>
 
-      <!-- Divider -->
       <div class="modal-divider">
         <span class="modal-divider__label">Completa tu postulación</span>
       </div>
 
-      <!-- ── FORMULARIO ── -->
       <form @submit.prevent="confirmar" class="modal-form">
+
         <div class="field">
           <label for="cvUrl" class="field-label">Enlace a tu CV</label>
           <div class="input-wrap">
@@ -108,6 +118,23 @@ export default {
           </p>
         </div>
 
+        <div class="field">
+          <label for="cvFile" class="field-label">Adjunta tu CV en PDF (opcional, recomendado)</label>
+          <input
+              id="cvFile"
+              type="file"
+              accept="application/pdf"
+              @change="onFileChange"
+              class="field-input-file"
+          />
+          <p v-if="cvFileError" class="field-error">{{ cvFileError }}</p>
+          <p v-else class="field-hint">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:13px;height:13px;color:#10b981;flex-shrink:0;">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            Si lo adjuntas, el sistema calculará automáticamente tu afinidad con la oferta (Match Score) para el reclutador.
+          </p>
+        </div>
         <button type="submit" class="btn-submit">
           <span>Enviar postulación</span>
           <svg viewBox="0 0 20 20" fill="none" class="btn-arrow">
@@ -247,4 +274,17 @@ export default {
 .btn-submit:hover { background: #10b981; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(16,185,129,0.35); }
 .btn-arrow { width: 18px; height: 18px; transition: transform 0.2s; }
 .btn-submit:hover .btn-arrow { transform: translateX(3px); }
+
+.field-input-file {
+  width: 100%;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 0.88rem;
+  font-family: 'DM Sans', sans-serif;
+  color: #374151;
+}
+.field-error { font-size: 0.78rem; color: #dc2626; }
+
 </style>
