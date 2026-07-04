@@ -22,6 +22,9 @@ import AsistenciaIA from '../modules/postulante/pages/AsistenciaIA.vue'
 import Entrevistas from "../modules/reclutador/pages/Entrevistas.vue";
 import MisEntrevistas from "../modules/postulante/pages/MisEntrevistas.vue";
 
+import EvaluacionGamificada from "../modules/postulante/pages/EvaluacionGamificada.vue";
+
+
 const routes = [
     {path:"/", redirect: "/select-role"},
     {path: "/select-role", component: RoleSelectionComponents},
@@ -39,6 +42,7 @@ const routes = [
             { path: 'perfil', component: PerfilPostulante, name: 'PostulantePerfil' },
             { path: 'asistencia-ia', component: AsistenciaIA, name: 'PostulanteAsistenciaIA' },
             { path: 'mis-entrevistas', component: MisEntrevistas, name: 'PostulanteMisEntrevistas' },
+            { path: 'evaluacion/:applicationId', component: EvaluacionGamificada, name: 'PostulanteEvaluacion' }
         ]
     },
 

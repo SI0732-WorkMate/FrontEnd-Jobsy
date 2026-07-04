@@ -104,14 +104,12 @@ export default {
 <template>
   <div class="page-wrapper">
 
-    <!-- Cabecera -->
     <div class="page-header">
       <div class="header-text">
         <h1 class="page-titulo">{{ $t("postulaciones_titulo") }}</h1>
         <p class="page-subtitulo">Haz seguimiento al estado de tus candidaturas.</p>
       </div>
 
-      <!-- Buscador -->
       <div class="search-wrapper">
         <div class="search-icon-wrap">
           <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,11 +125,9 @@ export default {
       </div>
     </div>
 
-    <!-- Tabla -->
     <div class="tabla-scroll">
       <div class="tabla-inner">
 
-        <!-- Cabeceras -->
         <div class="tabla-head">
           <div class="th">{{ $t("columna_titulo") }}</div>
           <div class="th">{{ $t("columna_resultado") }}</div>
@@ -139,7 +135,6 @@ export default {
           <div class="th">{{ $t("columna_acciones") }}</div>
         </div>
 
-        <!-- Filas -->
         <div class="tabla-body">
 
           <div v-if="isLoading" class="empty-state">
@@ -163,17 +158,14 @@ export default {
                 :key="postulacion.applicationId"
                 class="tabla-row"
             >
-              <!-- Título -->
               <div class="cell-titulo">
                 <span class="cell-titulo-text">{{ postulacion.title }}</span>
               </div>
 
-              <!-- Resultado -->
               <div class="cell-center">
                 <span class="chip chip-blue">{{ postulacion.resultado }}</span>
               </div>
 
-              <!-- Mensajes -->
               <div class="cell-center">
                 <div class="msg-badge-wrap">
                   <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="msg-icon">
@@ -183,14 +175,21 @@ export default {
                 </div>
               </div>
 
-              <!-- Acciones -->
               <div class="cell-acciones">
                 <button @click="abrirModalVer(postulacion)" class="btn-ver">Ver Detalles</button>
+
+                <button
+                    v-if="postulacion.resultado !== 'rejected'"
+                    @click="$router.push({ name: 'PostulanteEvaluacion', params: { applicationId: postulacion.applicationId } })"
+                    class="btn-ver"
+                    style="background:#ecfdf5;color:#065f46;"
+                >
+                  🎮 Evaluación
+                </button>
               </div>
             </div>
           </template>
 
-          <!-- Estado Vacío -->
           <div v-else class="empty-state">
             <div class="empty-icon">
               <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,7 +204,6 @@ export default {
       </div>
     </div>
 
-    <!-- Modal Ver Detalles -->
     <Transition name="modal">
       <div v-if="modalVer" class="modal-overlay" @click.self="modalVer = false">
         <div class="modal-card">
@@ -216,7 +214,6 @@ export default {
             </svg>
           </button>
 
-          <!-- Icon + título -->
           <div class="modal-icon">
             <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -224,7 +221,6 @@ export default {
           </div>
           <h3 class="modal-titulo">{{ postulacionSeleccionada.title }}</h3>
 
-          <!-- Chips de estado, location, salary -->
           <div class="modal-chips">
             <span class="chip chip-blue">{{ postulacionSeleccionada.resultado }}</span>
             <span v-if="postulacionSeleccionada.application_date" class="modal-fecha">
@@ -233,7 +229,6 @@ export default {
           </span>
           </div>
 
-          <!-- Info chips: location y salary -->
           <div class="modal-meta" v-if="postulacionSeleccionada.location || postulacionSeleccionada.salary_range">
           <span v-if="postulacionSeleccionada.location" class="meta-chip">
             <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -245,7 +240,6 @@ export default {
           </span>
           </div>
 
-          <!-- Descripción -->
           <div class="modal-section" v-if="postulacionSeleccionada.description">
             <span class="modal-section-label">Descripción</span>
             <div class="modal-desc-box">
@@ -253,7 +247,6 @@ export default {
             </div>
           </div>
 
-          <!-- Requisitos -->
           <div class="modal-section" v-if="postulacionSeleccionada.requirements">
             <span class="modal-section-label">Requisitos</span>
             <div class="modal-desc-box">
@@ -261,7 +254,6 @@ export default {
             </div>
           </div>
 
-          <!-- CV -->
           <div v-if="postulacionSeleccionada.cv_url" class="modal-section">
             <span class="modal-section-label">CV enviado</span>
             <a :href="postulacionSeleccionada.cv_url" target="_blank" rel="noopener noreferrer" class="modal-cv-link">

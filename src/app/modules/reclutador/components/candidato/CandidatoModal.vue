@@ -1,6 +1,7 @@
 <script>
 import { InterviewService } from '../../../postulante/services/interview.service.js'
 import { CandidatoService } from '../../../postulante/services/candidato.service.js'
+import { EvaluationService } from '../../../postulante/services/evaluation.service.js'
 
 export default {
   name: 'CandidatoModal',
@@ -36,6 +37,12 @@ export default {
       detalleMatch: null,
       cargandoDetalleMatch: false,
       // ==========================================
+
+      // ==========================================
+      // ADICIONADO: US019 - Gamificación
+      // ==========================================
+      evaluacionCandidato: null,
+      cargandoEvaluacion: true,
     };
   },
   computed: {
@@ -165,8 +172,28 @@ export default {
       } finally {
         this.cargandoDetalleMatch = false;
       }
-    }
+    },
+
     // ==========================================
+    // ADICIONADO: ── US019 - Gamificación ──
+    // ==========================================
+    async cargarEvaluacion() {
+      this.cargandoEvaluacion = true;
+      try {
+        this.evaluacionCandidato = await EvaluationService.obtenerResultadoParaReclutador(this.candidato.id);
+      } catch (e) {
+        this.evaluacionCandidato = null;
+      } finally {
+        this.cargandoEvaluacion = false;
+      }
+    }
+  },
+
+  // ==========================================
+  // ADICIONADO: Hook de ciclo de vida
+  // ==========================================
+  mounted() {
+    this.cargarEvaluacion();
   }
 };
 </script>
@@ -346,6 +373,28 @@ export default {
           </button>
         </div>
       </div>
+
+      <!-- US019 - Evaluación gamificada de habilidades blandas -->
+      <div class="campo">
+        <label class="campo-label">🎮 Evaluación de habilidades blandas</label>
+
+        <p v-if="cargandoEvaluacion" class="match-sin-calcular">Cargando...</p>
+        <p v-else-if="!evaluacionCandidato" class="match-sin-calcular">El candidato aún no completó la evaluación.</p>
+
+        <div v-else class="eval-resumen">
+          <div class="eval-resumen-score">{{ evaluacionCandidato.overall_score }}<span>/100</span></div>
+          <div class="eval-resumen-skills">
+            <div v-for="(score, skill) in evaluacionCandidato.skill_scores" :key="skill" class="eval-resumen-fila">
+              <span class="eval-resumen-nombre">{{ skill.replaceAll('_', ' ') }}</span>
+              <div class="eval-resumen-barra-track">
+                <div class="eval-resumen-barra-fill" :style="{ width: score + '%' }"></div>
+              </div>
+              <span class="eval-resumen-num">{{ score }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-footer">
         <button class="btn-primary" @click="confirmar">
           {{ textoBotonPrimario }}
@@ -684,4 +733,18 @@ export default {
 .match-skills-titulo--falta { color: #b45309; }
 .match-skills-lista { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--txt); }
 .match-skills-lista li { margin-bottom: 2px; }
+
+
+.eval-resumen { display: flex; gap: 1rem; align-items: flex-start; }
+.eval-resumen-score {
+  font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.8rem; color: #10b981;
+  flex-shrink: 0; padding: 8px 14px; background: #ecfdf5; border-radius: 14px;
+}
+.eval-resumen-score span { font-size: 0.9rem; color: #9ca3af; }
+.eval-resumen-skills { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+.eval-resumen-fila { display: flex; align-items: center; gap: 0.6rem; }
+.eval-resumen-nombre { flex: 0 0 110px; font-size: 0.75rem; color: #6b7280; text-transform: capitalize; }
+.eval-resumen-barra-track { flex: 1; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+.eval-resumen-barra-fill { height: 100%; background: linear-gradient(90deg, #10b981, #059669); }
+.eval-resumen-num { flex: 0 0 26px; text-align: right; font-weight: 700; font-size: 0.75rem; }
 </style>
