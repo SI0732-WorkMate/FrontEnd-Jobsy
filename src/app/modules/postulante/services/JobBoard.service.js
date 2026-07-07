@@ -16,7 +16,7 @@ export const getJobBoardData = async () => {
         const offers = response.data
             .map(offer => ({
                 ...offer,
-                status: offer.status === 0 ? "Activa" : "Borrador"
+                status: offer.status === 0 ? "Activa" : offer.status === 2 ? "Cerrada" : "Borrador"
             }))
             // Solo mostrar ofertas Activas a los postulantes
             .filter(offer => offer.status === "Activa");

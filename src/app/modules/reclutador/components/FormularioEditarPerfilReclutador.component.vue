@@ -9,26 +9,27 @@ const props = defineProps({
 
 const emit = defineEmits(['guardar-cambios', 'cancelar-edicion']);
 
-const datosEditables = ref({ companyName: '', email: '', description: '' });
+const datosEditables = ref({ companyName: '', email: '', description: '', ruc: '' });
 const errorEmail = ref('');
 
 watch(() => props.datosInicialesPerfil, (n) => {
   datosEditables.value.companyName = n.companyName || '';
   datosEditables.value.email       = n.email       || '';
   datosEditables.value.description = n.description || '';
+  datosEditables.value.ruc         = n.ruc         || '';
 }, { immediate: true, deep: true });
 
 const validarEmail = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,4}$/;
-  const partes = datosEditables.value.correo.split('@');
+  const partes = datosEditables.value.email.split('@');
   const dominio = partes[1] || '';
   const tld = dominio.split('.').pop();
 
-  if (!datosEditables.value.correo) {
+  if (!datosEditables.value.email) {
     errorEmail.value = 'El correo es obligatorio.';
     return false;
   }
-  if (!emailRegex.test(datosEditables.value.correo)) {
+  if (!emailRegex.test(datosEditables.value.email)) {
     errorEmail.value = 'Ingresa un correo válido (ej: tu@correo.com).';
     return false;
   }
@@ -105,6 +106,21 @@ const accionGuardar  = () => {
           </svg>
           {{ errorEmail }}
         </div>
+      </div>
+
+      <div class="campo">
+        <label for="frec_ruc" class="campo-label">RUC</label>
+        <div class="campo-wrap">
+          <svg class="campo-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 21V5a2 2 0 012-2h12a2 2 0 012 2v16M9 7h1m4 0h1M9 11h1m4 0h1M4 21h16"/>
+          </svg>
+          <input id="frec_ruc" v-model="datosEditables.ruc" type="text"
+                 maxlength="11"
+                 class="campo-input"
+                 placeholder="RUC de 11 digitos" />
+        </div>
+        <span class="campo-hint">La cuenta queda pendiente de verificacion del RUC.</span>
       </div>
 
       <div class="campo">

@@ -11,6 +11,7 @@ export default {
       user: null,
       publicacionesRecientes: [],
       postulacionesRecientes: [],
+      notificacionesInternas: [],
       totalPublicaciones: 0,
       publicacionesActivas: 0,
       loading: true,
@@ -37,9 +38,10 @@ export default {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
-        const [pubRes, appsRes] = await Promise.all([
+        const [pubRes, appsRes, inboxRes] = await Promise.all([
           getAllPublications(),
-          axios.get(`${API_URL}/applications/my-offers`, { headers }).catch(() => ({ data: [] }))
+          axios.get(`${API_URL}/applications/my-offers`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API_URL}/messages/inbox`, { headers }).catch(() => ({ data: [] }))
         ]);
 
         const todas = pubRes.data.filter(p => p.employer_id == this.user.id);
@@ -59,6 +61,7 @@ export default {
               ...app,
               ofertaTitulo: ofertasMap[app.job_offer_id] || 'Oferta desconocida'
             }));
+        this.notificacionesInternas = (inboxRes.data || []).slice(0, 5);
       } catch (e) {
         console.error('Error cargando dashboard:', e);
       } finally {
@@ -69,7 +72,9 @@ export default {
       this.$router.push(ruta);
     },
     estadoLabel(pub) {
-      return (pub.status === 0 || pub.status === 'Activa') ? 'Activa' : 'Borrador';
+      if (pub.status === 0 || pub.status === 'Activa') return 'Activa';
+      if (pub.status === 2 || pub.status === 'Cerrada') return 'Cerrada';
+      return 'Borrador';
     },
     estadoActiva(pub) {
       return pub.status === 0 || pub.status === 'Activa';
@@ -217,6 +222,28 @@ export default {
                 'notif-status--ok': app.status === 'Posible',
                 'notif-status--no': app.status === 'Denegado'
               }">{{ app.status || 'pending' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel panel--notif">
+            <div class="panel__head">
+              <h2 class="panel__title">
+                <span>Notificaciones inmediatas</span>
+                <span v-if="notificacionesInternas.length > 0" class="notif-badge">{{ notificacionesInternas.length }}</span>
+              </h2>
+            </div>
+
+            <div v-if="notificacionesInternas.length === 0" class="panel__empty">
+              <p>No hay notificaciones nuevas.</p>
+            </div>
+
+            <div v-else class="notif-list">
+              <div v-for="mensaje in notificacionesInternas" :key="mensaje.id" class="notif-item">
+                <div class="notif-info">
+                  <span class="notif-titulo">{{ mensaje.content }}</span>
+                  <span class="notif-fecha">{{ formatFecha(mensaje.sent_at) }}</span>
+                </div>
               </div>
             </div>
           </div>

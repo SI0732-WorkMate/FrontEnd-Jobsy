@@ -8,6 +8,7 @@ export default {
     return {
       name: "",
       email: "",
+      ruc: "",
       password: "",
       showPassword: false,
       selectedRole: null,
@@ -66,6 +67,11 @@ export default {
         return;
       }
 
+      if (this.esReclutador && !/^\d{11}$/.test(this.ruc)) {
+        this.errorMessage = "Ingresa un RUC valido de 11 digitos.";
+        return;
+      }
+
       const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,6}$/;
       if (!emailRegex.test(this.email)) {
         this.errorMessage = "El correo electrónico no tiene un formato válido.";
@@ -80,7 +86,7 @@ export default {
       this.cargando = true;
 
       try {
-        const userData = { name: this.name, email: this.email, password: this.password };
+        const userData = { name: this.name, email: this.email, password: this.password, ruc: this.ruc };
         await register(userData);
         router.push('/login');
       } catch (error) {
@@ -210,6 +216,16 @@ export default {
                 <path d="M2.5 6.5L10 11.5L17.5 6.5M3 5h14a1 1 0 011 1v8a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <input id="reg-email" v-model="email" type="email" placeholder="ejemplo@email.com" required class="field-input" autocomplete="off" :disabled="cargando" />
+            </div>
+          </div>
+
+          <div v-if="esReclutador" class="field">
+            <label for="reg-ruc" class="field-label">RUC de empresa</label>
+            <div class="input-wrap">
+              <svg class="input-icon" viewBox="0 0 20 20" fill="none">
+                <path d="M4 17V4a1 1 0 011-1h10a1 1 0 011 1v13M7 7h2m2 0h2M7 10h2m2 0h2M3 17h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <input id="reg-ruc" v-model="ruc" type="text" maxlength="11" placeholder="RUC de 11 digitos" required class="field-input" autocomplete="off" :disabled="cargando" />
             </div>
           </div>
 

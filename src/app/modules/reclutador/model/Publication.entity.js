@@ -7,6 +7,7 @@ export class Publication {
                     requirements = '',
                     location = '',
                     salary_range = '',
+                    status = 'Activa',
                     created_at = new Date().toISOString()
                 } = {}) {
         this.id = id;
@@ -16,6 +17,7 @@ export class Publication {
         this.requirements = requirements;
         this.location = location;
         this.salary_range = salary_range;
+        this.status = status;
         this.created_at = created_at;
     }
 }

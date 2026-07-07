@@ -3,9 +3,6 @@ import router from '../../../routers/router.js';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-/**
- * REGISTRO: Crea un nuevo usuario con su nombre directamente en la tabla 'User'.
- */
 export async function register(userData) {
     const selectedRole = localStorage.getItem('selectedRole');
     if (!selectedRole) {
@@ -17,22 +14,19 @@ export async function register(userData) {
         email: userData.email,
         password: userData.password,
         role: selectedRole === 'reclutador' ? 1 : 0,
-        description: ""
+        description: "",
+        ruc: userData.ruc || null,
+        cv_url: userData.cv_url || null,
+        cv_pdf_base64: userData.cv_pdf_base64 || null
     };
 
     const { data: newUser } = await axios.post(`${API_URL}/User`, newUserPayload);
 
-    // Limpiar selectedRole después del registro para evitar que quede contaminado
     localStorage.removeItem('selectedRole');
-
     return newUser;
 }
 
-/**
- * LOGIN: Valida credenciales, guarda el token y redirige según el rol.
- */
 export async function login(credentials) {
-    // Limpiar sesión anterior antes de iniciar una nueva
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.removeItem('selectedRole');
@@ -48,15 +42,11 @@ export async function login(credentials) {
 
     localStorage.setItem('user', JSON.stringify(user));
 
-    // user.role: 0 = CANDIDATE → /postulante, 1 = EMPLOYER → /reclutador
     const redirectPath = user.role === 1 ? '/reclutador' : '/postulante';
     router.push(redirectPath);
     return user;
 }
 
-/**
- * ACTUALIZAR PERFIL: Actualiza los datos del usuario.
- */
 export async function updateUserProfile(updatedUserData) {
     const user = JSON.parse(localStorage.getItem('user'));
     const token = localStorage.getItem('token');
@@ -65,11 +55,15 @@ export async function updateUserProfile(updatedUserData) {
         throw new Error("Usuario no autenticado.");
     }
 
-    // Solo mandamos los campos que el backend acepta
     const payload = {
         name: updatedUserData.name,
         description: updatedUserData.description,
-        email: updatedUserData.email // agregar
+        email: updatedUserData.email,
+        ruc: updatedUserData.ruc ?? undefined,
+        cv_url: updatedUserData.cv_url ?? undefined,
+        cv_pdf_base64: updatedUserData.cv_pdf_base64 ?? undefined,
+        vacancy_notifications_enabled: updatedUserData.vacancy_notifications_enabled ?? undefined,
+        vacancy_notification_keywords: updatedUserData.vacancy_notification_keywords ?? undefined
     };
 
     const { data: updatedProfile } = await axios.put(
@@ -78,15 +72,11 @@ export async function updateUserProfile(updatedUserData) {
         { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    // Actualizar localStorage con los datos nuevos
     const updatedUser = { ...user, ...updatedProfile };
     localStorage.setItem('user', JSON.stringify(updatedUser));
     return updatedUser;
 }
 
-/**
- * LOGOUT: Limpia sesión y redirige al selector de rol.
- */
 export function logout() {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
@@ -94,11 +84,7 @@ export function logout() {
     router.push('/select-role');
 }
 
-/**
- * SELECCIONAR ROL: Limpia estado previo, guarda el rol y redirige a registro.
- */
 export function selectRole(role) {
-    // Limpiar sesión anterior para evitar contaminación entre cuentas
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     localStorage.setItem('selectedRole', role);

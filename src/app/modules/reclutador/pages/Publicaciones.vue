@@ -77,6 +77,16 @@ export default {
     },
   },
   methods: {
+    statusLabel(status) {
+      if (status === 0 || status === 'Activa') return 'Activa';
+      if (status === 2 || status === 'Cerrada') return 'Cerrada';
+      return 'Borrador';
+    },
+    statusClass(status) {
+      if (status === 0 || status === 'Activa') return 'badge--active';
+      if (status === 2 || status === 'Cerrada') return 'badge--closed';
+      return 'badge--draft';
+    },
     onSalarioKeydown(e) {
       const allowed = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End','.'];
       if (allowed.includes(e.key)) return;
@@ -151,10 +161,10 @@ export default {
       try {
         await deletePublication(this.publicacionSeleccionada.id);
         this.modalEliminar = false;
-        alert("Publicación eliminada exitosamente.");
+        alert("Vacante cerrada exitosamente.");
         this.cargarPublicaciones();
       } catch (error) {
-        alert("Error al eliminar la publicación.");
+        alert("Error al cerrar la vacante.");
         console.error(error);
       }
     },
@@ -239,8 +249,8 @@ export default {
           </div>
           <div class="pub-row__cell pub-row__cell--center">
             <span class="pub-row__label">{{ $t('columna_estado') }}</span>
-            <span class="badge" :class="(publicacion.status === 'Activa' || publicacion.status === 0) ? 'badge--active' : 'badge--draft'">
-              {{ (publicacion.status === 0 || publicacion.status === 'Activa') ? 'Activa' : 'Borrador' }}
+            <span class="badge" :class="statusClass(publicacion.status)">
+              {{ statusLabel(publicacion.status) }}
             </span>
           </div>
           <div class="pub-row__cell pub-row__cell--center">
@@ -250,7 +260,7 @@ export default {
           <div class="pub-row__cell pub-row__cell--actions">
             <button class="btn-action btn-action--view"   @click="abrirModalVer(publicacion)">{{ $t("accion_ver") }}</button>
             <button class="btn-action btn-action--edit"   @click="abrirModalEditar(publicacion)">{{ $t("accion_editar") }}</button>
-            <button class="btn-action btn-action--delete" @click="abrirModalEliminar(publicacion)">{{ $t("accion_eliminar") }}</button>
+            <button class="btn-action btn-action--delete" @click="abrirModalEliminar(publicacion)">Cerrar</button>
           </div>
         </div>
       </template>
@@ -288,8 +298,8 @@ export default {
           <div class="detail-field"><span class="detail-label">{{ $t("titulo") }}</span><p class="detail-value">{{ publicacionSeleccionada.title }}</p></div>
           <div class="detail-field">
             <span class="detail-label">{{ $t("estado") }}</span>
-            <span class="badge" :class="(publicacionSeleccionada.status === 0 || publicacionSeleccionada.status === 'Activa') ? 'badge--active' : 'badge--draft'">
-              {{ (publicacionSeleccionada.status === 0 || publicacionSeleccionada.status === 'Activa') ? 'Activa' : 'Borrador' }}
+            <span class="badge" :class="statusClass(publicacionSeleccionada.status)">
+              {{ statusLabel(publicacionSeleccionada.status) }}
             </span>
           </div>
           <div class="detail-row">
@@ -310,8 +320,8 @@ export default {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
           </svg>
         </div>
-        <h3 class="modal__title modal__title--center">{{ $t("confirmar_eliminar_titulo") }}</h3>
-        <p class="modal__subtitle">{{ $t("confirmar_eliminar_texto") }}</p>
+        <h3 class="modal__title modal__title--center">Cerrar vacante</h3>
+        <p class="modal__subtitle">La vacante quedara en estado Cerrada y conservara su historial de postulaciones.</p>
         <div class="delete-preview"><p>{{ publicacionSeleccionada.title }}</p></div>
         <div class="modal__actions">
           <button class="btn-ghost" @click="modalEliminar = false">{{ $t("cancelar") }}</button>
@@ -462,6 +472,7 @@ export default {
             <select v-model="formulario.status" class="form-input form-input--select">
               <option value="Activa">{{ $t("activa") }}</option>
               <option value="Borrador">{{ $t("borrador") }}</option>
+              <option value="Cerrada">Cerrada</option>
             </select>
           </div>
 
@@ -548,6 +559,7 @@ export default {
 .badge { display:inline-block; padding:4px 12px; border-radius:8px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
 .badge--active { background:#e6f7f1; color:var(--c-mid); border:1px solid rgba(16,185,129,.3); }
 .badge--draft  { background:var(--c-bg); color:var(--c-muted); border:1px solid #e5e7eb; }
+.badge--closed { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
 
 .pub-empty { background:var(--c-card); border-radius:var(--r-card); padding:5rem 2rem; display:flex; flex-direction:column; align-items:center; text-align:center; border:1.5px dashed #d1d5db; }
 .pub-empty__icon { width:64px; height:64px; background:var(--c-bg); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#d1d5db; margin-bottom:1.25rem; border:1px solid #e5e7eb; }

@@ -9,7 +9,15 @@ const props = defineProps({
 
 const emit = defineEmits(['guardar-cambios-postulante', 'cancelar-edicion-postulante']);
 
-const datosEditables = ref({ nombre: '', correo: '', descripcion: '' });
+const datosEditables = ref({
+  nombre: '',
+  correo: '',
+  descripcion: '',
+  cv_url: '',
+  cv_pdf_base64: '',
+  vacancy_notifications_enabled: false,
+  vacancy_notification_keywords: '',
+});
 const errorEmail = ref('');
 const guardando = ref(false);
 
@@ -18,6 +26,10 @@ watch(() => props.datosInicialesPerfil, (nuevosDatos) => {
     nombre:      nuevosDatos.name        || nuevosDatos.nombre      || '',
     correo:      nuevosDatos.email       || nuevosDatos.correo      || '',
     descripcion: nuevosDatos.description || nuevosDatos.descripcion || '',
+    cv_url:      nuevosDatos.cv_url      || '',
+    cv_pdf_base64: nuevosDatos.cv_pdf_base64 || '',
+    vacancy_notifications_enabled: Boolean(nuevosDatos.vacancy_notifications_enabled),
+    vacancy_notification_keywords: nuevosDatos.vacancy_notification_keywords || '',
   };
 }, { immediate: true, deep: true });
 
@@ -44,6 +56,27 @@ const validarEmail = () => {
 };
 
 const accionCancelar = () => emit('cancelar-edicion-postulante');
+
+const onCvFileChange = (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf') {
+    alert('Solo se aceptan archivos PDF.');
+    event.target.value = '';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert('El PDF no puede superar 5 MB.');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    datosEditables.value.cv_pdf_base64 = String(reader.result).split(',')[1] || '';
+  };
+  reader.readAsDataURL(file);
+};
 
 const accionGuardar = () => {
   if (!validarEmail()) return;
@@ -129,6 +162,40 @@ const accionGuardar = () => {
             placeholder="Ej: Busco oportunidades en desarrollo web, apasionado por..."
         ></textarea>
         <span class="campo-hint">Cuéntale a las empresas quién eres y qué buscas profesionalmente.</span>
+      </div>
+
+      <div class="campo">
+        <label for="fPost_cv_url" class="campo-label">CV profesional</label>
+        <div class="campo-input-wrap">
+          <svg class="campo-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/>
+          </svg>
+          <input
+              id="fPost_cv_url"
+              v-model="datosEditables.cv_url"
+              type="url"
+              class="campo-input"
+              placeholder="https://drive.google.com/..."
+          />
+        </div>
+        <input type="file" accept="application/pdf" class="campo-input" @change="onCvFileChange" />
+        <span class="campo-hint">Puedes guardar un enlace o reemplazar tu CV con un PDF de hasta 5 MB.</span>
+      </div>
+
+      <div class="campo">
+        <label class="campo-label">Alertas de vacantes</label>
+        <label class="campo-hint">
+          <input type="checkbox" v-model="datosEditables.vacancy_notifications_enabled" />
+          Recibir notificaciones de vacantes relevantes
+        </label>
+        <input
+            v-model="datosEditables.vacancy_notification_keywords"
+            type="text"
+            class="campo-input"
+            placeholder="Ej: Vue, QA, Lima, remoto"
+        />
+        <span class="campo-hint">Separa tus intereses con comas para personalizar las alertas.</span>
       </div>
 
     </div>

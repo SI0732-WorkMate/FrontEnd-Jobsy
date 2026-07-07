@@ -5,7 +5,16 @@ import { updateUserProfile } from '../../authentication/services/roles.service.j
 
 defineOptions({ name: 'PerfilPostulante' });
 
-const perfil = ref({ id: null, name: '', correo: '', descripcion: '' });
+const perfil = ref({
+  id: null,
+  name: '',
+  correo: '',
+  descripcion: '',
+  cv_url: '',
+  has_cv_pdf: false,
+  vacancy_notifications_enabled: false,
+  vacancy_notification_keywords: '',
+});
 const modoEdicion = ref(false);
 const userObjectToEdit = ref(null);
 
@@ -18,6 +27,10 @@ onMounted(() => {
       name:        userData.name,
       correo:      userData.email,
       descripcion: userData.description || 'Añade una descripción sobre ti.',
+      cv_url:      userData.cv_url || '',
+      has_cv_pdf:  userData.has_cv_pdf || false,
+      vacancy_notifications_enabled: Boolean(userData.vacancy_notifications_enabled),
+      vacancy_notification_keywords: userData.vacancy_notification_keywords || '',
     };
   }
 });
@@ -32,10 +45,18 @@ const procesarGuardado = async (payload) => {
       name:        datosFormulario.nombre,
       description: datosFormulario.descripcion,
       email:       datosFormulario.correo,
+      cv_url:      datosFormulario.cv_url,
+      cv_pdf_base64: datosFormulario.cv_pdf_base64,
+      vacancy_notifications_enabled: datosFormulario.vacancy_notifications_enabled,
+      vacancy_notification_keywords: datosFormulario.vacancy_notification_keywords,
     });
     perfil.value.name        = perfilActualizado.name;
     perfil.value.correo      = perfilActualizado.email;
     perfil.value.descripcion = perfilActualizado.description;
+    perfil.value.cv_url      = perfilActualizado.cv_url;
+    perfil.value.has_cv_pdf  = perfilActualizado.has_cv_pdf;
+    perfil.value.vacancy_notifications_enabled = perfilActualizado.vacancy_notifications_enabled;
+    perfil.value.vacancy_notification_keywords = perfilActualizado.vacancy_notification_keywords;
     alert('Perfil actualizado correctamente.');
     desactivarModoEdicion();
   } catch {
@@ -103,6 +124,26 @@ const procesarGuardado = async (payload) => {
           <span class="dato-label">{{ $t('perfil_descripcion') }}</span>
           <div class="dato-valor dato-valor--tall">
             {{ perfil.descripcion || 'Sin descripción aún. Haz clic en Editar perfil para añadir una.' }}
+          </div>
+        </div>
+
+        <div class="dato">
+          <span class="dato-label">CV</span>
+          <div class="dato-valor dato-valor--tall">
+            <div>
+              <p>{{ perfil.has_cv_pdf ? 'PDF guardado en tu perfil.' : 'Sin PDF guardado.' }}</p>
+              <a v-if="perfil.cv_url" :href="perfil.cv_url" target="_blank" rel="noopener">Abrir enlace de CV</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="dato">
+          <span class="dato-label">Alertas de vacantes</span>
+          <div class="dato-valor dato-valor--tall">
+            <div>
+              <p>{{ perfil.vacancy_notifications_enabled ? 'Alertas activadas.' : 'Alertas desactivadas.' }}</p>
+              <p>{{ perfil.vacancy_notification_keywords || 'Sin palabras clave configuradas.' }}</p>
+            </div>
           </div>
         </div>
 
