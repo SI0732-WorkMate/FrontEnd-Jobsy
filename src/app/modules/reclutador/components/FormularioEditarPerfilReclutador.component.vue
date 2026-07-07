@@ -11,6 +11,7 @@ const emit = defineEmits(['guardar-cambios', 'cancelar-edicion']);
 
 const datosEditables = ref({ companyName: '', email: '', description: '', ruc: '' });
 const errorEmail = ref('');
+const errorRuc = ref('');
 
 watch(() => props.datosInicialesPerfil, (n) => {
   datosEditables.value.companyName = n.companyName || '';
@@ -41,9 +42,36 @@ const validarEmail = () => {
   return true;
 };
 
+const limpiarRuc = () => {
+  datosEditables.value.ruc = datosEditables.value.ruc.replace(/\D/g, '').slice(0, 11);
+};
+
+const validarRuc = () => {
+  const ruc = datosEditables.value.ruc;
+  if (!/^20\d{9}$/.test(ruc)) {
+    errorRuc.value = 'El RUC de empresa debe tener 11 digitos e iniciar con 20.';
+    return false;
+  }
+
+  const factores = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const suma = factores.reduce((acc, factor, index) => acc + Number(ruc[index]) * factor, 0);
+  let digito = 11 - (suma % 11);
+  if (digito === 10) digito = 0;
+  else if (digito === 11) digito = 1;
+
+  if (digito !== Number(ruc[10])) {
+    errorRuc.value = 'El digito verificador del RUC no es valido.';
+    return false;
+  }
+
+  errorRuc.value = '';
+  return true;
+};
+
 const accionCancelar = () => emit('cancelar-edicion');
 const accionGuardar  = () => {
   if (!validarEmail()) return;
+  if (!validarRuc()) return;
   emit('guardar-cambios', { datosFormulario: { ...datosEditables.value } });
 };
 </script>
@@ -118,9 +146,19 @@ const accionGuardar  = () => {
           <input id="frec_ruc" v-model="datosEditables.ruc" type="text"
                  maxlength="11"
                  class="campo-input"
-                 placeholder="RUC de 11 digitos" />
+                 :class="{ 'campo-input--error': errorRuc }"
+                 placeholder="20XXXXXXXXX"
+                 @input="limpiarRuc"
+                 @blur="validarRuc" />
         </div>
-        <span class="campo-hint">La cuenta queda pendiente de verificacion del RUC.</span>
+        <div v-if="errorRuc" class="campo-error">
+          <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+          {{ errorRuc }}
+        </div>
+        <span class="campo-hint">El sistema valida que sea un RUC de empresa peruana con digito verificador correcto.</span>
       </div>
 
       <div class="campo">

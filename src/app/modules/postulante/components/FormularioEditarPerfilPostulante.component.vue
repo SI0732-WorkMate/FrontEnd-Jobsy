@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 defineOptions({ name: 'FormularioEditarPerfilPostulante' });
 
@@ -20,6 +20,7 @@ const datosEditables = ref({
 });
 const errorEmail = ref('');
 const guardando = ref(false);
+const cvFileName = ref('');
 
 watch(() => props.datosInicialesPerfil, (nuevosDatos) => {
   datosEditables.value = {
@@ -31,7 +32,15 @@ watch(() => props.datosInicialesPerfil, (nuevosDatos) => {
     vacancy_notifications_enabled: Boolean(nuevosDatos.vacancy_notifications_enabled),
     vacancy_notification_keywords: nuevosDatos.vacancy_notification_keywords || '',
   };
+  cvFileName.value = nuevosDatos.cv_pdf_base64 ? 'PDF guardado actualmente' : '';
 }, { immediate: true, deep: true });
+
+const cvPreviewSource = computed(() => {
+  if (datosEditables.value.cv_pdf_base64) {
+    return `data:application/pdf;base64,${datosEditables.value.cv_pdf_base64}`;
+  }
+  return datosEditables.value.cv_url || '';
+});
 
 const validarEmail = () => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,4}$/;
@@ -74,6 +83,7 @@ const onCvFileChange = (event) => {
   const reader = new FileReader();
   reader.onload = () => {
     datosEditables.value.cv_pdf_base64 = String(reader.result).split(',')[1] || '';
+    cvFileName.value = file.name;
   };
   reader.readAsDataURL(file);
 };
@@ -96,7 +106,7 @@ const accionGuardar = () => {
         </svg>
       </div>
       <div class="fpost-header__texto">
-        <h2 class="fpost-titulo">Editar perfil</h2>
+        <h2 class="fpost-titulo">Editar Perfil</h2>
         <p class="fpost-subtitulo">Actualiza tu información personal y profesional.</p>
       </div>
       <button class="fpost-cerrar" @click="accionCancelar" aria-label="Cancelar">
@@ -152,7 +162,7 @@ const accionGuardar = () => {
         </div>
       </div>
 
-      <div class="campo">
+      <div class="campo campo--wide">
         <label for="fPost_desc" class="campo-label">Descripción profesional</label>
         <textarea
             id="fPost_desc"
@@ -164,29 +174,54 @@ const accionGuardar = () => {
         <span class="campo-hint">Cuéntale a las empresas quién eres y qué buscas profesionalmente.</span>
       </div>
 
-      <div class="campo">
+      <div class="campo campo--wide">
         <label for="fPost_cv_url" class="campo-label">CV profesional</label>
-        <div class="campo-input-wrap">
-          <svg class="campo-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z"/>
-          </svg>
-          <input
-              id="fPost_cv_url"
-              v-model="datosEditables.cv_url"
-              type="url"
-              class="campo-input"
-              placeholder="https://drive.google.com/..."
-          />
+        <div class="cv-editor">
+          <div class="cv-editor__fields">
+            <div class="campo-input-wrap">
+              <svg class="campo-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13.828 10.172a4 4 0 010 5.656l-2 2a4 4 0 01-5.656-5.656l1-1m5.656-1.414a4 4 0 015.656 5.656l-1 1"/>
+              </svg>
+              <input
+                  id="fPost_cv_url"
+                  v-model="datosEditables.cv_url"
+                  type="url"
+                  class="campo-input"
+                  placeholder="https://drive.google.com/..."
+              />
+            </div>
+
+            <label class="cv-upload">
+              <input type="file" accept="application/pdf" @change="onCvFileChange" />
+              <span class="cv-upload__icon">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0-12l4 4m-4-4L8 8"/>
+                </svg>
+              </span>
+              <span>
+                <strong>{{ cvFileName || 'Subir PDF' }}</strong>
+                <small>Hasta 5 MB</small>
+              </span>
+            </label>
+          </div>
+
+          <div v-if="cvPreviewSource" class="cv-mini-preview">
+            <iframe :src="cvPreviewSource" title="Previsualizacion del CV"></iframe>
+          </div>
+          <div v-else class="cv-mini-empty">
+            <span>La previsualizacion aparecera cuando agregues un enlace o un PDF.</span>
+          </div>
         </div>
-        <input type="file" accept="application/pdf" class="campo-input" @change="onCvFileChange" />
         <span class="campo-hint">Puedes guardar un enlace o reemplazar tu CV con un PDF de hasta 5 MB.</span>
       </div>
 
-      <div class="campo">
+      <div class="campo campo--wide">
         <label class="campo-label">Alertas de vacantes</label>
-        <label class="campo-hint">
+        <label class="toggle-row">
           <input type="checkbox" v-model="datosEditables.vacancy_notifications_enabled" />
+          <span></span>
           Recibir notificaciones de vacantes relevantes
         </label>
         <input
@@ -232,13 +267,13 @@ const accionGuardar = () => {
 
 .fpost-wrap {
   background: var(--card);
-  border-radius: 24px;
+  border-radius: 20px;
   padding: 2rem 1.75rem;
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
   font-family: 'DM Sans', sans-serif;
   width: 100%;
-  max-width: 720px;
+  max-width: 860px;
   margin: 0 auto;
   animation: cardIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
 }
@@ -259,6 +294,10 @@ const accionGuardar = () => {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #ffffff 0%, #f8faf9 100%);
+  margin: -0.75rem -0.5rem 2rem;
+  padding: 1rem 0.5rem 1.5rem;
+  border-radius: 16px 16px 0 0;
 }
 
 .fpost-header__icon {
@@ -298,9 +337,19 @@ const accionGuardar = () => {
 .fpost-cerrar:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; transform: scale(1.08); }
 .fpost-cerrar:focus { outline: none; }
 
-.fpost-campos { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem; }
+.fpost-campos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@media (min-width: 760px) {
+  .fpost-campos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .campo { display: flex; flex-direction: column; gap: 0.5rem; }
+.campo--wide { grid-column: 1 / -1; }
 
 .campo-label {
   font-family: 'Sora', sans-serif;
@@ -369,6 +418,158 @@ const accionGuardar = () => {
 .campo-textarea:focus { border-color: var(--va); background: #fff; box-shadow: 0 0 0 3px rgba(16,185,129,0.12); }
 
 .campo-hint { font-size: 0.75rem; color: #9ca3af; line-height: 1.5; }
+
+.cv-editor {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+@media (min-width: 820px) {
+  .cv-editor {
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    align-items: stretch;
+  }
+}
+
+.cv-editor__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.cv-upload {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 76px;
+  background: #ffffff;
+  border: 1.5px dashed #b7c4ce;
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.cv-upload:hover {
+  border-color: var(--va);
+  background: #f0fdf4;
+  transform: translateY(-1px);
+}
+
+.cv-upload input { display: none; }
+
+.cv-upload__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  color: var(--va);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cv-upload strong {
+  display: block;
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--txt);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.85rem;
+}
+
+.cv-upload small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #9ca3af;
+  font-size: 0.75rem;
+}
+
+.cv-mini-preview {
+  min-height: 280px;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.cv-mini-preview iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  border: 0;
+}
+
+.cv-mini-empty {
+  min-height: 220px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.25rem;
+  color: #94a3b8;
+  background: #ffffff;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: fit-content;
+  color: #4b5563;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toggle-row span {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #d1d5db;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-row span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15,23,42,0.25);
+  transition: transform 0.2s;
+}
+
+.toggle-row input:checked + span {
+  background: var(--va);
+}
+
+.toggle-row input:checked + span::after {
+  transform: translateX(18px);
+}
 
 .fpost-footer {
   display: flex;

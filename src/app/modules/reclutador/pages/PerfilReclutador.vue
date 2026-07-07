@@ -5,7 +5,7 @@ import { updateUserProfile } from '../../authentication/services/roles.service.j
 
 defineOptions({ name: 'PerfilReclutador' });
 
-const perfil = ref({ id: null, companyName: '', email: '', description: '', ruc: '', verification_status: '' });
+const perfil = ref({ id: null, companyName: '', email: '', description: '', ruc: '' });
 const modoEdicion = ref(false);
 
 onMounted(() => {
@@ -17,7 +17,6 @@ onMounted(() => {
       email: userData.email,
       description: userData.description || '',
       ruc: userData.ruc || '',
-      verification_status: userData.verification_status || 'PENDING',
     };
   }
 });
@@ -38,7 +37,6 @@ const procesarGuardado = async (payload) => {
     perfil.value.email       = perfilActualizado.email;
     perfil.value.description = perfilActualizado.description;
     perfil.value.ruc         = perfilActualizado.ruc;
-    perfil.value.verification_status = perfilActualizado.verification_status;
     alert('Perfil actualizado correctamente.');
     desactivarModoEdicion();
   } catch {
@@ -73,7 +71,7 @@ const procesarGuardado = async (payload) => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                   d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
           </svg>
-          {{ $t('editar_perfil') }}
+          Editar Perfil
         </button>
       </div>
 
@@ -106,13 +104,6 @@ const procesarGuardado = async (payload) => {
           <span class="dato-label">RUC</span>
           <div class="dato-valor">
             {{ perfil.ruc || 'Pendiente de registrar' }}
-          </div>
-        </div>
-
-        <div class="dato">
-          <span class="dato-label">Verificacion</span>
-          <div class="dato-valor">
-            {{ perfil.verification_status || 'PENDING' }}
           </div>
         </div>
 

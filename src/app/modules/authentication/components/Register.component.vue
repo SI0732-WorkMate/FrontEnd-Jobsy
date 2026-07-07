@@ -47,8 +47,25 @@ export default {
     passwordValid() {
       return Object.values(this.rules).every(Boolean);
     },
+    rucRules() {
+      const ruc = this.ruc;
+      return {
+        length: ruc.length === 11,
+        prefix: ruc.startsWith('20'),
+        checkDigit: ruc.length === 11 && this.hasValidRucCheckDigit(ruc),
+      };
+    },
+    rucValid() {
+      return !this.esReclutador || Object.values(this.rucRules).every(Boolean);
+    },
     showChecklist() {
       return this.password.length > 0;
+    },
+    showRucChecklist() {
+      return this.esReclutador && this.ruc.length > 0;
+    },
+    formValid() {
+      return this.passwordValid && this.rucValid;
     }
   },
   mounted() {
@@ -67,8 +84,8 @@ export default {
         return;
       }
 
-      if (this.esReclutador && !/^\d{11}$/.test(this.ruc)) {
-        this.errorMessage = "Ingresa un RUC valido de 11 digitos.";
+      if (!this.rucValid) {
+        this.errorMessage = "Ingresa un RUC de empresa valido: 11 digitos, inicia con 20 y tiene digito verificador correcto.";
         return;
       }
 
@@ -102,6 +119,22 @@ export default {
       } finally {
         this.cargando = false;
       }
+    },
+
+    cleanRuc() {
+      this.ruc = this.ruc.replace(/\D/g, '').slice(0, 11);
+    },
+
+    hasValidRucCheckDigit(ruc) {
+      if (!/^\d{11}$/.test(ruc)) return false;
+
+      const factors = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+      const sum = factors.reduce((acc, factor, index) => acc + Number(ruc[index]) * factor, 0);
+      let checkDigit = 11 - (sum % 11);
+      if (checkDigit === 10) checkDigit = 0;
+      else if (checkDigit === 11) checkDigit = 1;
+
+      return checkDigit === Number(ruc[10]);
     },
 
     openModal(tab) {
@@ -225,8 +258,14 @@ export default {
               <svg class="input-icon" viewBox="0 0 20 20" fill="none">
                 <path d="M4 17V4a1 1 0 011-1h10a1 1 0 011 1v13M7 7h2m2 0h2M7 10h2m2 0h2M3 17h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <input id="reg-ruc" v-model="ruc" type="text" maxlength="11" placeholder="RUC de 11 digitos" required class="field-input" autocomplete="off" :disabled="cargando" />
+              <input id="reg-ruc" v-model="ruc" type="text" maxlength="11" placeholder="20XXXXXXXXX" required class="field-input" autocomplete="off" :disabled="cargando" @input="cleanRuc" />
             </div>
+
+            <ul v-if="showRucChecklist" class="pwd-checklist">
+              <li :class="rucRules.length ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rucRules.length ? '✓' : '×' }}</span> Debe tener 11 digitos</li>
+              <li :class="rucRules.prefix ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rucRules.prefix ? '✓' : '×' }}</span> Debe iniciar con 20</li>
+              <li :class="rucRules.checkDigit ? 'rule--ok' : 'rule--fail'"><span class="rule-icon">{{ rucRules.checkDigit ? '✓' : '×' }}</span> Digito verificador valido</li>
+            </ul>
           </div>
 
           <!-- Contraseña -->
@@ -283,7 +322,7 @@ export default {
               type="submit"
               class="btn-register"
               :class="esReclutador ? 'btn-register--employer' : ''"
-              :disabled="!passwordValid || cargando"
+              :disabled="!formValid || cargando"
           >
             <template v-if="!cargando">
               <span>Crear cuenta {{ rolIcon }}</span>
